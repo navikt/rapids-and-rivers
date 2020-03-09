@@ -60,6 +60,7 @@ class RapidApplication internal constructor(
             log.info("publishing application_up event for app_name=$appName, instance_id=$instanceId")
             rapidsConnection.publish(it)
         }
+        statusListeners.forEach { it.onStartup(this) }
     }
 
     override fun onShutdown(rapidsConnection: RapidsConnection) {
@@ -67,6 +68,7 @@ class RapidApplication internal constructor(
             log.info("publishing application_down event for app_name=$appName, instance_id=$instanceId")
             rapidsConnection.publish(it)
         }
+        statusListeners.forEach { it.onShutdown(this) }
     }
 
     private fun applicationEvent(event: String): String? {
