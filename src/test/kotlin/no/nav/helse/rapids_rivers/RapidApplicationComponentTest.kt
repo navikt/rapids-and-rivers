@@ -125,10 +125,6 @@ internal class RapidApplicationComponentTest {
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/isready") }
 
-            await("wait until the rapid has been assigned partitions")
-                .atMost(40, SECONDS)
-                .until { isOkResponse("/metrics") }
-
             rapid.stop()
 
             await("wait until the rapid has stopped")
