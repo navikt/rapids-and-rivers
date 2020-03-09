@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -140,10 +141,44 @@ internal class RapidApplicationComponentTest {
         }
     }
 
-    private fun waitForEvent(messages: List<String>, event: String) {
-        await("wait until $event")
+    @Test
+    fun `ping pong`() {
+        val appName = "rapid-app"
+        rapid = RapidApplication.create(createConfig().let {
+            it.toMutableMap().apply { put("RAPID_APP_NAME", appName) }
+        })
+
+        KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).use { consumer ->
+            consumer.subscribe(listOf(testTopic))
+            val messages = mutableListOf<String>()
+            val job = GlobalScope.launch {
+                while (this.isActive) consumer.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
+            }
+
+            GlobalScope.launch { rapid.start() }
+
+            waitForEvent(messages, "application_up")
+
+            val pingId = UUID.randomUUID().toString()
+            rapid.publish("""{"@event_name":"ping","@id":"$pingId"}""")
+
+            val pong = requireNotNull(waitForEvent(messages, "pong")) { "did not receive pong before timeout" }
+            assertEquals(pingId, pong["@id"].asText())
+            assertEquals(appName, pong["app_name"].asText())
+            assertTrue(pong.hasNonNull("instance_id"))
+
+            rapid.stop()
+            runBlocking { job.cancelAndJoin() }
+        }
+    }
+
+    private fun waitForEvent(messages: List<String>, event: String): JsonNode? {
+        return await("wait until $event")
             .atMost(10, SECONDS)
-            .until { messages.any { objectMapper.readTree(it).path("@event_name").asText() == event } }
+            .until({
+                messages.map { objectMapper.readTree(it) }
+                    .firstOrNull { it.path("@event_name").asText() == event }
+            }) { it != null }
     }
 
     private fun consumerProperties(): MutableMap<String, Any>? {

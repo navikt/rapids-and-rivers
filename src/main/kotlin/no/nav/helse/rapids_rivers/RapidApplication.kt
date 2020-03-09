@@ -2,9 +2,7 @@ package no.nav.helse.rapids_rivers
 
 import io.ktor.application.Application
 import io.ktor.server.engine.ApplicationEngine
-import io.ktor.util.KtorExperimentalAPI
 import io.prometheus.client.CollectorRegistry
-import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
@@ -23,6 +21,10 @@ class RapidApplication internal constructor(
     init {
         Runtime.getRuntime().addShutdownHook(Thread(::shutdownHook))
         rapid.register(this)
+
+        if (appName != null) {
+            PingPong(rapid, appName, instanceId)
+        }
     }
 
     override fun onMessage(message: String, context: MessageContext) {

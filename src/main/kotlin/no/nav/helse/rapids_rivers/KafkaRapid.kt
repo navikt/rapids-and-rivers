@@ -71,7 +71,9 @@ class KafkaRapid(
     }
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
-        if (!seekToBeginning || partitions.isEmpty()) return
+        if (partitions.isEmpty()) return
+        listeners.forEach { it.onStart(this) }
+        if (!seekToBeginning) return
         log.info("seeking to beginning for $partitions")
         consumer.seekToBeginning(partitions)
         seekToBeginning = false
@@ -84,7 +86,6 @@ class KafkaRapid(
 
     private fun consumeMessages() {
         try {
-            listeners.forEach { it.onStart(this) }
             consumer.subscribe(topics, this)
             consumer.assignment().also(::ensureConsumerPosition)
             while (running.get()) {
@@ -117,6 +118,7 @@ class KafkaRapid(
         private val rapidsConnection: RapidsConnection
     ) : MessageContext {
         override fun send(message: String) {
+            if (record.key() == null) return rapidsConnection.publish(message)
             send(record.key(), message)
         }
 
