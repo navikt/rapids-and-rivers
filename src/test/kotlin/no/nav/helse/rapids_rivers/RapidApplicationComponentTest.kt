@@ -111,7 +111,7 @@ internal class RapidApplicationComponentTest {
         val job = GlobalScope.launch { rapid.start() }
 
         await("wait until the custom endpoint responds")
-            .atMost(20, SECONDS)
+            .atMost(40, SECONDS)
             .until { isOkResponse(endpoint) }
 
         assertEquals(expectedText, response(endpoint))
@@ -126,11 +126,11 @@ internal class RapidApplicationComponentTest {
 
         val job = GlobalScope.launch { rapid.start() }
         await("wait until the rapid has started")
-            .atMost(20, SECONDS)
+            .atMost(40, SECONDS)
             .until { isOkResponse("/isalive") }
 
         await("wait until the rapid has been assigned partitions")
-            .atMost(20, SECONDS)
+            .atMost(40, SECONDS)
             .until { isOkResponse("/isready") }
 
         assertTrue(isOkResponse("/metrics"))
@@ -139,7 +139,7 @@ internal class RapidApplicationComponentTest {
         runBlocking { job.cancelAndJoin() }
 
         await("wait until the rapid has stopped")
-            .atMost(20, SECONDS)
+            .atMost(40, SECONDS)
             .until { !isOkResponse("/isalive") }
     }
 
@@ -185,7 +185,7 @@ internal class RapidApplicationComponentTest {
 
     private fun waitForEvent(event: String): JsonNode? {
         return await("wait until $event")
-            .atMost(20, SECONDS)
+            .atMost(40, SECONDS)
             .until({
                 messages.map { objectMapper.readTree(it) }
                     .firstOrNull { it.path("@event_name").asText() == event }
