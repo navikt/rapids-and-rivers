@@ -8,15 +8,11 @@ import io.ktor.http.ContentType
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.*
 import no.nav.common.KafkaEnvironment
 import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.awaitility.Awaitility.await
@@ -30,7 +26,7 @@ import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URL
 import java.time.Duration
-import java.util.HashMap
+import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 
 internal class RapidApplicationComponentTest {
@@ -129,7 +125,7 @@ internal class RapidApplicationComponentTest {
             it.subscribe(listOf(testTopic))
             val messages = mutableListOf<String>()
             val job = GlobalScope.launch {
-                while (this.isActive) it.poll(Duration.ofSeconds(1)).forEach { println("got $it"); messages.add(it.value()) }
+                while (this.isActive) it.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
             }
 
             GlobalScope.launch { rapid.start() }

@@ -182,7 +182,15 @@ internal class RapidIntegrationTest {
         readMessages.clear()
 
         rapid.seekToBeginning()
-        GlobalScope.launch { rapid.start() }
+
+        GlobalScope.launch {
+            try {
+                rapid.start()
+            } catch (err: Exception) {
+                println("exception in test: ${err.message}")
+                fail(err)
+            }
+        }
 
         await("wait until the rapid has read more than one message")
             .atMost(5, SECONDS)
