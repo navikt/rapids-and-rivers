@@ -101,7 +101,7 @@ internal class RapidIntegrationTest {
         rapid.startNonBlocking()
 
         await("wait until the rapid has started")
-            .atMost(5, SECONDS)
+            .atMost(20, SECONDS)
             .until(rapid::isRunning)
     }
 
@@ -133,7 +133,7 @@ internal class RapidIntegrationTest {
         })
 
         await("wait until the rapid stops")
-            .atMost(10, SECONDS)
+            .atMost(20, SECONDS)
             .until {
                 kafkaProducer.send(ProducerRecord(testTopic, UUID.randomUUID().toString()))
                 !rapid.isRunning()
@@ -233,7 +233,7 @@ internal class RapidIntegrationTest {
     private fun waitForReply(topic: String, serviceId: String, eventName: String, event: String) {
         val sentMessages = mutableListOf<String>()
         await("wait until we get a reply")
-            .atMost(10, SECONDS)
+            .atMost(20, SECONDS)
             .until {
                 val key = UUID.randomUUID().toString()
                 kafkaProducer.send(ProducerRecord(topic, key, event))
