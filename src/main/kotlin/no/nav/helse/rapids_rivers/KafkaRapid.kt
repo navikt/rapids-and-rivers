@@ -23,6 +23,7 @@ class KafkaRapid(
 
     private val log = LoggerFactory.getLogger(KafkaRapid::class.java)
 
+    private val notifiedStartup = AtomicBoolean(false)
     private val running = AtomicBoolean(Stopped)
 
     private val stringDeserializer = StringDeserializer()
@@ -35,7 +36,7 @@ class KafkaRapid(
     private var seekToBeginning = false
 
     fun seekToBeginning() {
-        check(Stopped == running.getAndSet(Stopped)) { "cannot reset consumer after rapid has started" }
+        check(Stopped == running.get()) { "cannot reset consumer after rapid has started" }
         seekToBeginning = true
     }
 
@@ -72,7 +73,7 @@ class KafkaRapid(
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
         if (partitions.isEmpty()) return
-        listeners.forEach { it.onStart(this) }
+        if (notifiedStartup.compareAndSet(false, true)) statusListeners.forEach { it.onStartup(this) }
         if (!seekToBeginning) return
         log.info("seeking to beginning for $partitions")
         consumer.seekToBeginning(partitions)
@@ -97,7 +98,7 @@ class KafkaRapid(
             // throw exception if we have not been told to stop
             if (running.get()) throw err
         } finally {
-            listeners.forEach { it.onShutdown(this) }
+            statusListeners.forEach { it.onShutdown(this) }
             closeResources()
         }
     }

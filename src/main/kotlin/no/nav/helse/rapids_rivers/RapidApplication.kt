@@ -14,13 +14,14 @@ class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
     private val rapid: RapidsConnection,
     private val appName: String? = null
-) : RapidsConnection(), RapidsConnection.MessageListener {
+) : RapidsConnection(), RapidsConnection.MessageListener, RapidsConnection.StatusListener {
 
     private val instanceId = UUID.randomUUID().toString()
 
     init {
         Runtime.getRuntime().addShutdownHook(Thread(::shutdownHook))
-        rapid.register(this)
+        rapid.register(this as MessageListener)
+        rapid.register(this as StatusListener)
 
         if (appName != null) {
             PingPong(rapid, appName, instanceId)
@@ -54,7 +55,7 @@ class RapidApplication internal constructor(
         stop()
     }
 
-    override fun onStart(rapidsConnection: RapidsConnection) {
+    override fun onStartup(rapidsConnection: RapidsConnection) {
         applicationEvent("application_up")?.also {
             log.info("publishing application_up event for app_name=$appName, instance_id=$instanceId")
             rapidsConnection.publish(it)

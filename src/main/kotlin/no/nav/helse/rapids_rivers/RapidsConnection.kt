@@ -2,7 +2,12 @@ package no.nav.helse.rapids_rivers
 
 abstract class RapidsConnection {
 
+    protected val statusListeners = mutableListOf<StatusListener>()
     protected val listeners = mutableListOf<MessageListener>()
+
+    fun register(listener: StatusListener) {
+        statusListeners.add(listener)
+    }
 
     fun register(listener: MessageListener) {
         listeners.add(listener)
@@ -19,10 +24,12 @@ abstract class RapidsConnection {
         fun send(key: String, message: String)
     }
 
-    interface MessageListener {
-        fun onStart(rapidsConnection: RapidsConnection) {}
-        fun onShutdown(rapidsConnection: RapidsConnection) {}
+    interface StatusListener {
+        fun onStartup(rapidsConnection: RapidsConnection)
+        fun onShutdown(rapidsConnection: RapidsConnection)
+    }
 
+    interface MessageListener {
         fun onMessage(message: String, context: MessageContext)
     }
 }
