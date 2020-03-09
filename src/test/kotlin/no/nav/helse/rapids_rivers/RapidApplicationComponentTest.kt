@@ -201,7 +201,7 @@ internal class RapidApplicationComponentTest {
             conn = (URL("$appUrl$path").openConnection() as HttpURLConnection)
             return conn.responseCode in 200..299
         } catch (err: IOException) {
-            System.err.println("${err.message}")
+            System.err.println("$appUrl$path: ${err.message}")
             err.printStackTrace(System.err)
         } finally {
             conn?.disconnect()
