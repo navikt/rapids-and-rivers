@@ -3,8 +3,7 @@ package no.nav.helse.rapids_rivers
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import no.nav.common.KafkaEnvironment
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
@@ -48,6 +47,7 @@ internal class RapidIntegrationTest {
 
         private lateinit var config: KafkaConfig
         private lateinit var rapid: KafkaRapid
+        private lateinit var rapidJob: Job
 
         private fun producerProperties() =
                 Properties().apply {
@@ -97,15 +97,8 @@ internal class RapidIntegrationTest {
 
     @BeforeEach
     internal fun start() {
-        rapid = KafkaRapid(config.consumerConfig(), config.producerConfig(), testTopic, listOf(anotherTestTopic))
-
-        GlobalScope.launch {
-            try {
-                rapid.start()
-            } catch (err: Exception) {
-                // swallow
-            }
-        }
+        rapid = createTestRapid()
+        rapid.startNonBlocking()
 
         await("wait until the rapid has started")
             .atMost(5, SECONDS)
@@ -115,6 +108,7 @@ internal class RapidIntegrationTest {
     @AfterEach
     internal fun stop() {
         rapid.stop()
+        runBlocking { rapidJob.cancelAndJoin() }
     }
 
     @Test
@@ -158,7 +152,6 @@ internal class RapidIntegrationTest {
 
     @Test
     fun `seek to beginning`() {
-
         val readMessages = mutableListOf<JsonMessage>()
         River(rapid).apply {
             register(object : River.PacketListener {
@@ -178,22 +171,23 @@ internal class RapidIntegrationTest {
             }
 
         rapid.stop()
+        runBlocking { rapidJob.cancelAndJoin() }
 
         readMessages.clear()
 
-        rapid.seekToBeginning()
-
-        GlobalScope.launch {
-            try {
-                rapid.start()
-            } catch (err: Exception) {
-                println("exception in test: ${err.message}")
-                fail(err)
-            }
+        rapid = createTestRapid()
+        River(rapid).apply {
+            register(object : River.PacketListener {
+                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                    readMessages.add(packet)
+                }
+            })
         }
+        rapid.seekToBeginning()
+        rapid.startNonBlocking()
 
         await("wait until the rapid has read more than one message")
-            .atMost(5, SECONDS)
+            .atMost(20, SECONDS)
             .until { readMessages.size >= producedMessages }
     }
 
@@ -205,6 +199,20 @@ internal class RapidIntegrationTest {
 
         testRiver(eventName, serviceId)
         waitForReply(anotherTestTopic, serviceId, eventName, value)
+    }
+
+    private fun KafkaRapid.startNonBlocking() {
+        rapidJob = GlobalScope.launch {
+            try {
+                this@startNonBlocking.start()
+            } catch (err: Exception) {
+                // swallow
+            }
+        }
+    }
+
+    private fun createTestRapid(): KafkaRapid {
+        return KafkaRapid(config.consumerConfig(), config.producerConfig(), testTopic, listOf(anotherTestTopic))
     }
 
     private fun testRiver(eventName: String, serviceId: String) {

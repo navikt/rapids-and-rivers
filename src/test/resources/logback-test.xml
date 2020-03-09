@@ -4,7 +4,7 @@
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
     </appender>
 
-    <logger name="org.apache" level="WARN" />
+    <logger name="org.apache" level="INFO" />
     <logger name="kafka" level="WARN" />
 
     <root level="INFO">

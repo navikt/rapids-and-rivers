@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.2.4"
@@ -61,7 +62,7 @@ tasks.withType<Test> {
         showExceptions = true
         showStackTraces = true
         showCauses = true
-        setExceptionFormat("full")
+        exceptionFormat = TestExceptionFormat.FULL
     }
 }
 
