@@ -25,8 +25,10 @@ abstract class RapidsConnection {
     }
 
     interface StatusListener {
-        fun onStartup(rapidsConnection: RapidsConnection)
-        fun onShutdown(rapidsConnection: RapidsConnection)
+        fun onStartup(rapidsConnection: RapidsConnection) {}
+        fun onReady(rapidsConnection: RapidsConnection) {}
+        fun onNotReady(rapidsConnection: RapidsConnection) {}
+        fun onShutdown(rapidsConnection: RapidsConnection) {}
     }
 
     interface MessageListener {

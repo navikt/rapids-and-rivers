@@ -41,7 +41,7 @@ class KafkaRapid(
     }
 
     fun isRunning() = running.get()
-    fun isReady() = ready.get()
+    fun isReady() = isRunning() && ready.get()
 
     override fun publish(message: String) {
         producer.send(ProducerRecord(rapidTopic, message))
@@ -64,16 +64,19 @@ class KafkaRapid(
     }
 
     override fun onPartitionsAssigned(partitions: Collection<TopicPartition>) {
+        if (partitions.isEmpty()) return
         log.info("partitions assigned: $partitions")
         ensureConsumerPosition(partitions)
+        statusListeners.forEach { it.onReady(this) }
     }
 
     override fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
         log.info("partitions revoked: $partitions")
+        statusListeners.forEach { it.onNotReady(this) }
     }
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
-        if (!seekToBeginning || partitions.isEmpty()) return
+        if (!seekToBeginning) return
         log.info("seeking to beginning for $partitions")
         consumer.seekToBeginning(partitions)
         seekToBeginning = false
@@ -86,12 +89,10 @@ class KafkaRapid(
 
     private fun consumeMessages() {
         try {
+            statusListeners.forEach { it.onStartup(this) }
+            ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                if (consumer.assignment().isNotEmpty() && !ready.get()) {
-                    statusListeners.forEach { it.onStartup(this) }
-                    ready.set(true)
-                }
                 consumer.poll(Duration.ofSeconds(1))
                     .forEach(::onRecord)
                     .also { consumer.commitSync() }
@@ -100,7 +101,6 @@ class KafkaRapid(
             // throw exception if we have not been told to stop
             if (running.get()) throw err
         } finally {
-            ready.set(false)
             statusListeners.forEach { it.onShutdown(this) }
             closeResources()
         }

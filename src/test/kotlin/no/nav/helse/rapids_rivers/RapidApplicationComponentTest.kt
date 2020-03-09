@@ -175,7 +175,7 @@ internal class RapidApplicationComponentTest {
 
         val job = GlobalScope.launch { rapid.start() }
 
-        waitForEvent("application_up")
+        waitForEvent("application_ready")
 
         val pingId = UUID.randomUUID().toString()
         rapid.publish("""{"@event_name":"ping","@id":"$pingId"}""")

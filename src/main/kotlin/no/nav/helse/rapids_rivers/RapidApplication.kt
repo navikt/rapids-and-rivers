@@ -63,6 +63,22 @@ class RapidApplication internal constructor(
         statusListeners.forEach { it.onStartup(this) }
     }
 
+    override fun onReady(rapidsConnection: RapidsConnection) {
+        applicationEvent("application_ready")?.also {
+            log.info("publishing application_ready event for app_name=$appName, instance_id=$instanceId")
+            rapidsConnection.publish(it)
+        }
+        statusListeners.forEach { it.onReady(this) }
+    }
+
+    override fun onNotReady(rapidsConnection: RapidsConnection) {
+        applicationEvent("application_not_ready")?.also {
+            log.info("publishing application_not_ready event for app_name=$appName, instance_id=$instanceId")
+            rapidsConnection.publish(it)
+        }
+        statusListeners.forEach { it.onReady(this) }
+    }
+
     override fun onShutdown(rapidsConnection: RapidsConnection) {
         applicationEvent("application_down")?.also {
             log.info("publishing application_down event for app_name=$appName, instance_id=$instanceId")
