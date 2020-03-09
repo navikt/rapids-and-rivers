@@ -8,12 +8,17 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
+import java.time.LocalDateTime
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
-    private val rapid: RapidsConnection
+    private val rapid: RapidsConnection,
+    private val appName: String? = null
 ) : RapidsConnection(), RapidsConnection.MessageListener {
+
+    private val instanceId = UUID.randomUUID().toString()
 
     init {
         Runtime.getRuntime().addShutdownHook(Thread(::shutdownHook))
@@ -47,13 +52,37 @@ class RapidApplication internal constructor(
         stop()
     }
 
+    override fun onStart(rapidsConnection: RapidsConnection) {
+        applicationEvent("application_up")?.also {
+            log.info("publishing application_up event for app_name=$appName, instance_id=$instanceId")
+            rapidsConnection.publish(it)
+        }
+    }
+
+    override fun onShutdown(rapidsConnection: RapidsConnection) {
+        applicationEvent("application_down")?.also {
+            log.info("publishing application_down event for app_name=$appName, instance_id=$instanceId")
+            rapidsConnection.publish(it)
+        }
+    }
+
+    private fun applicationEvent(event: String): String? {
+        if (appName == null) return null
+        val packet = JsonMessage("{}", MessageProblems("{}"))
+        packet["@event_name"] = event
+        packet["@opprettet"] = LocalDateTime.now()
+        packet["app_name"] = appName
+        packet["instance_id"] = instanceId
+        return packet.toJson()
+    }
+
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
         fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
     }
 
-    class Builder(config: RapidApplicationConfig) {
+    class Builder(private val config: RapidApplicationConfig) {
 
         init {
             Thread.currentThread().setUncaughtExceptionHandler(::uncaughtExceptionHandler)
@@ -75,7 +104,7 @@ class RapidApplication internal constructor(
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)
-            return RapidApplication(app, rapid)
+            return RapidApplication(app, rapid, config.appName)
         }
 
         private fun uncaughtExceptionHandler(thread: Thread, err: Throwable) {
@@ -84,6 +113,7 @@ class RapidApplication internal constructor(
     }
 
     class RapidApplicationConfig(
+        internal val appName: String?,
         internal val rapidTopic: String,
         internal val extraTopics: List<String> = emptyList(),
         internal val kafkaConfig: KafkaConfig,
@@ -92,6 +122,7 @@ class RapidApplication internal constructor(
         companion object {
             fun fromEnv(env: Map<String, String>) =
                 RapidApplicationConfig(
+                    appName = generateAppName(env) ?: env["RAPID_APP_NAME"],
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
                     kafkaConfig = KafkaConfig(
@@ -105,6 +136,13 @@ class RapidApplication internal constructor(
                     ),
                     httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
                 )
+
+            private fun generateAppName(env: Map<String, String>): String? {
+                val appName = env["NAIS_APP_NAME"] ?: return null
+                val namespace = env["NAIS_NAMESPACE"] ?: return null
+                val cluster = env["NAIS_CLUSTER_NAME"] ?: return null
+                return "$appName-$cluster-$namespace"
+            }
         }
     }
 }

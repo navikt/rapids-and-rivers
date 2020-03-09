@@ -20,6 +20,9 @@ abstract class RapidsConnection {
     }
 
     interface MessageListener {
+        fun onStart(rapidsConnection: RapidsConnection) {}
+        fun onShutdown(rapidsConnection: RapidsConnection) {}
+
         fun onMessage(message: String, context: MessageContext)
     }
 }

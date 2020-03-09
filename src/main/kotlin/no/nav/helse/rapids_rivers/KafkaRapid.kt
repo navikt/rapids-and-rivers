@@ -84,6 +84,7 @@ class KafkaRapid(
 
     private fun consumeMessages() {
         try {
+            listeners.forEach { it.onStart(this) }
             consumer.subscribe(topics, this)
             consumer.assignment().also(::ensureConsumerPosition)
             while (running.get()) {
@@ -95,6 +96,7 @@ class KafkaRapid(
             // throw exception if we have not been told to stop
             if (running.get()) throw err
         } finally {
+            listeners.forEach { it.onShutdown(this) }
             closeResources()
         }
     }
