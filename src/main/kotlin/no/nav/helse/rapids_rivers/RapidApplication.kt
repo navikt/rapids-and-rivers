@@ -50,7 +50,6 @@ class RapidApplication internal constructor(
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
-        @KtorExperimentalAPI
         fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
     }
 
@@ -73,7 +72,6 @@ class RapidApplication internal constructor(
             ktor.module(module)
         }
 
-        @KtorExperimentalAPI
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)

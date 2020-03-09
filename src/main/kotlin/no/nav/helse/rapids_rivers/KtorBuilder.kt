@@ -10,10 +10,7 @@ import io.ktor.response.respondText
 import io.ktor.response.respondTextWriter
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.server.engine.ApplicationEngine
-import io.ktor.server.engine.ApplicationEngineEnvironmentBuilder
-import io.ktor.server.engine.connector
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.engine.*
 import io.ktor.server.netty.Netty
 import io.ktor.util.KtorExperimentalAPI
 import io.micrometer.core.instrument.Clock
@@ -48,8 +45,11 @@ class KtorBuilder {
         builder.module(module)
     }
 
-    @KtorExperimentalAPI
-    fun build(): ApplicationEngine = embeddedServer(Netty, builder.build {  })
+    fun build(): ApplicationEngine = embeddedServer(Netty, applicationEngineEnvironment {
+        this.connectors.addAll(builder.connectors)
+        this.log = builder.log
+        this.modules.addAll(builder.modules)
+    })
 
     fun liveness(isAliveCheck: () -> Boolean) = apply {
         builder.module {

@@ -4,7 +4,6 @@ import io.ktor.server.engine.ApplicationEngine
 import io.ktor.util.KtorExperimentalAPI
 import java.util.concurrent.TimeUnit
 
-@KtorExperimentalAPI
 fun inMemoryRapid(config: InMemoryRapidConfig.() -> Unit) = InMemoryRapidConfig().apply(config).build()
 
 class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
@@ -44,7 +43,6 @@ class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
     data class RapidMessage(val key: String?, val value: String)
 }
 
-@KtorExperimentalAPI
 class InMemoryRapidConfig internal constructor() {
     private val ktor = KtorBuilder()
 

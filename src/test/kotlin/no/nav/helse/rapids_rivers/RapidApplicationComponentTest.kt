@@ -21,7 +21,6 @@ import java.net.ServerSocket
 import java.net.URL
 import java.util.concurrent.TimeUnit.SECONDS
 
-@KtorExperimentalAPI
 internal class RapidApplicationComponentTest {
     private companion object {
 

@@ -5,7 +5,6 @@ import io.ktor.util.KtorExperimentalAPI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-@KtorExperimentalAPI
 internal class InMemoryRapidTest {
 
     @Test
