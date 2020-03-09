@@ -45,7 +45,6 @@ internal class RapidApplicationComponentTest {
         withSecurity = false
     )
 
-    private lateinit var rapid: RapidsConnection
     private lateinit var appUrl: String
     private lateinit var testConsumer: Consumer<String, String>
     private lateinit var consumerJob: Job
@@ -86,6 +85,7 @@ internal class RapidApplicationComponentTest {
             "KAFKA_BOOTSTRAP_SERVERS" to embeddedKafkaEnvironment.brokersURL,
             "KAFKA_CONSUMER_GROUP_ID" to "component-test",
             "KAFKA_RAPID_TOPIC" to testTopic,
+            "RAPID_APP_NAME" to "app-name",
             "HTTP_PORT" to "$randomPort"
         )
     }
@@ -99,88 +99,64 @@ internal class RapidApplicationComponentTest {
     fun `custom endpoint`() {
         val expectedText = "Hello, World!"
         val endpoint = "/custom"
-        rapid = RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig()))
+        withRapid(RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig()))
             .withKtorModule {
                 routing {
                     get(endpoint) {
                         call.respondText(expectedText, ContentType.Text.Plain)
                     }
                 }
-            }.build()
-
-        val job = GlobalScope.launch { rapid.start() }
-
-        await("wait until the custom endpoint responds")
-            .atMost(40, SECONDS)
-            .until { isOkResponse(endpoint) }
-
-        assertEquals(expectedText, response(endpoint))
-
-        rapid.stop()
-        runBlocking { job.cancelAndJoin() }
+            }) {
+            await("wait until the custom endpoint responds")
+                .atMost(40, SECONDS)
+                .until { isOkResponse(endpoint) }
+            assertEquals(expectedText, response(endpoint))
+        }
     }
 
     @Test
     fun `nais endpoints`() {
-        rapid = RapidApplication.create(createConfig())
+        withRapid() { rapid ->
+            await("wait until the rapid has started")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/isalive") }
 
-        val job = GlobalScope.launch { rapid.start() }
-        await("wait until the rapid has started")
-            .atMost(40, SECONDS)
-            .until { isOkResponse("/isalive") }
+            await("wait until the rapid has been assigned partitions")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/isready") }
 
-        await("wait until the rapid has been assigned partitions")
-            .atMost(40, SECONDS)
-            .until { isOkResponse("/isready") }
+            assertTrue(isOkResponse("/metrics"))
 
-        assertTrue(isOkResponse("/metrics"))
+            rapid.stop()
 
-        rapid.stop()
-        runBlocking { job.cancelAndJoin() }
-
-        await("wait until the rapid has stopped")
-            .atMost(40, SECONDS)
-            .until { !isOkResponse("/isalive") }
+            await("wait until the rapid has stopped")
+                .atMost(40, SECONDS)
+                .until { !isOkResponse("/isalive") }
+        }
     }
 
     @Test
     fun `creates events for up and down`() {
-        rapid = RapidApplication.create(createConfig().let {
-            it.toMutableMap().apply { put("RAPID_APP_NAME", "rapid-app") }
-        })
-
-        val job = GlobalScope.launch { rapid.start() }
-
-        waitForEvent("application_up")
-
-        rapid.stop()
-
-        waitForEvent("application_down")
-
-        runBlocking { job.cancelAndJoin() }
+        withRapid() { rapid ->
+            waitForEvent("application_up")
+            rapid.stop()
+            waitForEvent("application_down")
+        }
     }
 
     @Test
     fun `ping pong`() {
-        val appName = "rapid-app"
-        rapid = RapidApplication.create(createConfig().let {
-            it.toMutableMap().apply { put("RAPID_APP_NAME", appName) }
-        })
+        withRapid() { rapid ->
+            waitForEvent("application_ready")
 
-        val job = GlobalScope.launch { rapid.start() }
+            val pingId = UUID.randomUUID().toString()
+            rapid.publish("""{"@event_name":"ping","@id":"$pingId"}""")
 
-        waitForEvent("application_ready")
-
-        val pingId = UUID.randomUUID().toString()
-        rapid.publish("""{"@event_name":"ping","@id":"$pingId"}""")
-
-        val pong = requireNotNull(waitForEvent("pong")) { "did not receive pong before timeout" }
-        assertEquals(pingId, pong["@id"].asText())
-        assertEquals(appName, pong["app_name"].asText())
-        assertTrue(pong.hasNonNull("instance_id"))
-
-        rapid.stop()
-        runBlocking { job.cancelAndJoin() }
+            val pong = requireNotNull(waitForEvent("pong")) { "did not receive pong before timeout" }
+            assertEquals(pingId, pong["@id"].asText())
+            assertEquals("app-name", pong["app_name"].asText())
+            assertTrue(pong.hasNonNull("instance_id"))
+        }
     }
 
     private fun waitForEvent(event: String): JsonNode? {
@@ -190,6 +166,18 @@ internal class RapidApplicationComponentTest {
                 messages.map { objectMapper.readTree(it) }
                     .firstOrNull { it.path("@event_name").asText() == event }
             }) { it != null }
+    }
+
+    private fun withRapid(builder: RapidApplication.Builder? = null, block: (RapidsConnection) -> Unit) {
+        val rapidsConnection = (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
+            .build()
+        val job = GlobalScope.launch { rapidsConnection.start() }
+        try {
+            block(rapidsConnection)
+        } finally {
+            rapidsConnection.stop()
+            runBlocking { job.cancelAndJoin() }
+        }
     }
 
     private fun response(path: String) =
@@ -202,7 +190,7 @@ internal class RapidApplicationComponentTest {
             return conn.responseCode in 200..299
         } catch (err: IOException) {
             System.err.println("$appUrl$path: ${err.message}")
-            err.printStackTrace(System.err)
+            //err.printStackTrace(System.err)
         } finally {
             conn?.disconnect()
         }
