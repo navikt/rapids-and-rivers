@@ -97,7 +97,7 @@ class RapidApplication internal constructor(
             .log(log)
             .port(config.httpPort)
             .liveness(rapid::isRunning)
-            .readiness(rapid::isRunning)
+            .readiness(rapid::isReady)
             .metrics(CollectorRegistry.defaultRegistry)
 
         fun withKtorModule(module: Application.() -> Unit) = apply {

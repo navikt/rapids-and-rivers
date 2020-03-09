@@ -25,6 +25,7 @@ class KafkaRapid(
 
     private val notifiedStartup = AtomicBoolean(false)
     private val running = AtomicBoolean(Stopped)
+    private val ready = AtomicBoolean(false)
 
     private val stringDeserializer = StringDeserializer()
     private val stringSerializer = StringSerializer()
@@ -41,6 +42,7 @@ class KafkaRapid(
     }
 
     fun isRunning() = running.get()
+    fun isReady() = ready.get()
 
     override fun publish(message: String) {
         producer.send(ProducerRecord(rapidTopic, message))
@@ -73,7 +75,10 @@ class KafkaRapid(
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
         if (partitions.isEmpty()) return
-        if (notifiedStartup.compareAndSet(false, true)) statusListeners.forEach { it.onStartup(this) }
+        if (notifiedStartup.compareAndSet(false, true)) {
+            statusListeners.forEach { it.onStartup(this) }
+            ready.set(true)
+        }
         if (!seekToBeginning) return
         log.info("seeking to beginning for $partitions")
         consumer.seekToBeginning(partitions)
@@ -98,6 +103,7 @@ class KafkaRapid(
             // throw exception if we have not been told to stop
             if (running.get()) throw err
         } finally {
+            ready.set(false)
             statusListeners.forEach { it.onShutdown(this) }
             closeResources()
         }

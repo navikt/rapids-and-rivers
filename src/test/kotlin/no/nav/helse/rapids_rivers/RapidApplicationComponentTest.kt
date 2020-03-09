@@ -106,7 +106,10 @@ internal class RapidApplicationComponentTest {
             .atMost(5, SECONDS)
             .until { isOkResponse("/isalive") }
 
-        assertTrue(isOkResponse("/isready"))
+        await("wait until the rapid has been assigned partitions")
+            .atMost(5, SECONDS)
+            .until { isOkResponse("/isready") }
+
         assertTrue(isOkResponse("/metrics"))
 
         rapid.stop()
