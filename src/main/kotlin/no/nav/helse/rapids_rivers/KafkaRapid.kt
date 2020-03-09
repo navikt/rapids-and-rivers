@@ -89,6 +89,7 @@ class KafkaRapid(
             while (running.get()) {
                 consumer.poll(Duration.ofSeconds(1))
                     .forEach(::onRecord)
+                    .also { consumer.commitSync() }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop

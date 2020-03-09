@@ -24,8 +24,7 @@ class KafkaConfig(
     internal fun consumerConfig() = kafkaBaseConfig().apply {
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
-        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
-        put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000")
+        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
     }
 
     internal fun producerConfig() = kafkaBaseConfig().apply {
