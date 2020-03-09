@@ -23,7 +23,6 @@ class KafkaRapid(
 
     private val log = LoggerFactory.getLogger(KafkaRapid::class.java)
 
-    private val notifiedStartup = AtomicBoolean(false)
     private val running = AtomicBoolean(Stopped)
     private val ready = AtomicBoolean(false)
 
@@ -74,12 +73,7 @@ class KafkaRapid(
     }
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
-        if (partitions.isEmpty()) return
-        if (notifiedStartup.compareAndSet(false, true)) {
-            statusListeners.forEach { it.onStartup(this) }
-            ready.set(true)
-        }
-        if (!seekToBeginning) return
+        if (!seekToBeginning || partitions.isEmpty()) return
         log.info("seeking to beginning for $partitions")
         consumer.seekToBeginning(partitions)
         seekToBeginning = false
@@ -93,8 +87,11 @@ class KafkaRapid(
     private fun consumeMessages() {
         try {
             consumer.subscribe(topics, this)
-            consumer.assignment().also(::ensureConsumerPosition)
             while (running.get()) {
+                if (consumer.assignment().isNotEmpty() && !ready.get()) {
+                    statusListeners.forEach { it.onStartup(this) }
+                    ready.set(true)
+                }
                 consumer.poll(Duration.ofSeconds(1))
                     .forEach(::onRecord)
                     .also { consumer.commitSync() }
