@@ -18,12 +18,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.ServerSocket
@@ -32,68 +29,65 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class RapidApplicationComponentTest {
-    private companion object {
 
-        private val objectMapper = jacksonObjectMapper()
-            .registerModule(JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private val objectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-        private val testTopic = "a-test-topic"
-        private val embeddedKafkaEnvironment = KafkaEnvironment(
-            autoStart = false,
-            noOfBrokers = 1,
-            topicInfos = listOf(KafkaEnvironment.TopicInfo(testTopic, partitions = 1)),
-            withSchemaRegistry = false,
-            withSecurity = false
+    private val testTopic = "a-test-topic"
+    private val embeddedKafkaEnvironment = KafkaEnvironment(
+        autoStart = false,
+        noOfBrokers = 1,
+        topicInfos = listOf(KafkaEnvironment.TopicInfo(testTopic, partitions = 1)),
+        withSchemaRegistry = false,
+        withSecurity = false
+    )
+
+    private lateinit var rapid: RapidsConnection
+    private lateinit var appUrl: String
+    private lateinit var testConsumer: Consumer<String, String>
+    private lateinit var consumerJob: Job
+    private val messages = mutableListOf<String>()
+
+    @BeforeAll
+    internal fun setup() {
+        embeddedKafkaEnvironment.start()
+        testConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).apply {
+            subscribe(listOf(testTopic))
+        }
+        consumerJob = GlobalScope.launch {
+            while (this.isActive) testConsumer.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
+        }
+    }
+
+    @AfterAll
+    internal fun teardown() {
+        runBlocking { consumerJob.cancelAndJoin() }
+        testConsumer.close()
+        embeddedKafkaEnvironment.tearDown()
+    }
+
+    private fun consumerProperties(): MutableMap<String, Any>? {
+        return HashMap<String, Any>().apply {
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
+            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+            put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer")
+            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        }
+    }
+
+    private fun createConfig(): Map<String, String> {
+        val randomPort = ServerSocket(0).use { it.localPort }
+        appUrl = "http://localhost:$randomPort"
+        return mapOf(
+            "KAFKA_BOOTSTRAP_SERVERS" to embeddedKafkaEnvironment.brokersURL,
+            "KAFKA_CONSUMER_GROUP_ID" to "component-test",
+            "KAFKA_RAPID_TOPIC" to testTopic,
+            "HTTP_PORT" to "$randomPort"
         )
-
-        private lateinit var rapid: RapidsConnection
-        private lateinit var appUrl: String
-        private lateinit var testConsumer: Consumer<String, String>
-        private lateinit var consumerJob: Job
-        private val messages = mutableListOf<String>()
-
-        @BeforeAll
-        @JvmStatic
-        internal fun setup() {
-            embeddedKafkaEnvironment.start()
-            testConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).apply {
-                subscribe(listOf(testTopic))
-            }
-            consumerJob = GlobalScope.launch {
-                while (this.isActive) testConsumer.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
-            }
-        }
-
-        @AfterAll
-        @JvmStatic
-        internal fun teardown() {
-            runBlocking { consumerJob.cancelAndJoin() }
-            testConsumer.close()
-            embeddedKafkaEnvironment.tearDown()
-        }
-
-        private fun consumerProperties(): MutableMap<String, Any>? {
-            return HashMap<String, Any>().apply {
-                put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
-                put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-                put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-                put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer")
-                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            }
-        }
-
-        private fun createConfig(): Map<String, String> {
-            val randomPort = ServerSocket(0).use { it.localPort }
-            appUrl = "http://localhost:$randomPort"
-            return mapOf(
-                "KAFKA_BOOTSTRAP_SERVERS" to embeddedKafkaEnvironment.brokersURL,
-                "KAFKA_CONSUMER_GROUP_ID" to "integration-test-$randomPort",
-                "KAFKA_RAPID_TOPIC" to testTopic,
-                "HTTP_PORT" to "$randomPort"
-            )
-        }
     }
 
     @BeforeEach
