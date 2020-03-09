@@ -195,12 +195,17 @@ internal class RapidApplicationComponentTest {
     private fun response(path: String) =
         URL("$appUrl$path").openStream().use { it.bufferedReader().readText() }
 
-    private fun isOkResponse(path: String) =
+    private fun isOkResponse(path: String): Boolean {
+        var conn: HttpURLConnection? = null
         try {
-            (URL("$appUrl$path")
-                .openConnection() as HttpURLConnection)
-                .responseCode in 200..299
+            conn = (URL("$appUrl$path").openConnection() as HttpURLConnection)
+            return conn.responseCode in 200..299
         } catch (err: IOException) {
-            false
+            System.err.println("${err.message}")
+            err.printStackTrace(System.err)
+        } finally {
+            conn?.disconnect()
         }
+        return false
+    }
 }
