@@ -83,8 +83,8 @@ val sourcesJar by tasks.registering(Jar::class) {
 }
 
 version = properties["rapidVersion"] ?: "local-build"
-val githubUser: String by project
-val githubPassword: String by project
+val githubUser: String? by project
+val githubPassword: String? by project
 
 publishing {
     repositories {
