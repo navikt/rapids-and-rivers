@@ -7,7 +7,7 @@ val micrometerRegistryPrometheusVersion = "1.1.5"
 val junitJupiterVersion = "5.4.0"
 val jacksonVersion = "2.10.0"
 
-group = "no.nav.helse"
+group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
@@ -75,6 +75,7 @@ repositories {
     mavenCentral()
     maven("https://dl.bintray.com/kotlin/ktor")
     maven("http://packages.confluent.io/maven/")
+    maven("https://jitpack.io")
 }
 
 val sourcesJar by tasks.registering(Jar::class) {
