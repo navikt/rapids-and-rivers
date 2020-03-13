@@ -20,37 +20,37 @@ jobs:
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
 
 
-    release:
-      name: Create Release
-      needs: build
-      runs-on: ubuntu-latest
-      if: github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, 'ci skip')
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v1
-        - name: Set release tag
-          run: |
-            export TAG_NAME="1.$(echo $GITHUB_SHA | cut -c1-7)"
-            echo "::set-env name=RELEASE_TAG::$TAG_NAME"
-        - name: Set changelog
-          # (Escape newlines see https://github.com/actions/create-release/issues/25)
-          run: |
-            text="$(git --no-pager log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%h %s")"
-            text="${text//$'%'/%25}"
-            text="${text//$'\n'/%0A}"
-            text="${text//$'\r'/%0D}"
-            echo "::set-env name=CHANGELOG::$text"
-        - name: Create Release
-          id: create_release
-          uses: actions/create-release@latest
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            tag_name: ${{ env.RELEASE_TAG }}
-            release_name: ${{ env.RELEASE_TAG }}
-            body: |
-              Changes in this Release
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, 'ci skip')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Set release tag
+        run: |
+          export TAG_NAME="1.$(echo $GITHUB_SHA | cut -c1-7)"
+          echo "::set-env name=RELEASE_TAG::$TAG_NAME"
+      - name: Set changelog
+        # (Escape newlines see https://github.com/actions/create-release/issues/25)
+        run: |
+          text="$(git --no-pager log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%h %s")"
+          text="${text//$'%'/%25}"
+          text="${text//$'\n'/%0A}"
+          text="${text//$'\r'/%0D}"
+          echo "::set-env name=CHANGELOG::$text"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: ${{ env.RELEASE_TAG }}
+          body: |
+            Changes in this Release
 
-              ${{ env.CHANGELOG }}
-            draft: false
-            prerelease: false
+            ${{ env.CHANGELOG }}
+          draft: false
+          prerelease: false
