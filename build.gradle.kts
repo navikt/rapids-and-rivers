@@ -3,21 +3,19 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.2.4"
 val kafkaVersion = "2.3.1"
-val micrometerRegistryPrometheusVersion = "1.1.5"
-val junitJupiterVersion = "5.4.0"
-val jacksonVersion = "2.10.0"
+val micrometerRegistryPrometheusVersion = "1.3.5"
+val junitJupiterVersion = "5.6.0"
+val jacksonVersion = "2.10.3"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.3.60"
+    kotlin("jvm") version "1.3.70"
     id("java")
     id("maven-publish")
     id("org.sonarqube") version "2.7"
 }
-
-//apply(plugin = "org.jetbrains.kotlin.jvm")
 
 dependencies {
     api(kotlin("stdlib-jdk8"))
@@ -83,7 +81,6 @@ val sourcesJar by tasks.registering(Jar::class) {
     from(sourceSets.main.get().allSource)
 }
 
-version = properties["rapidVersion"] ?: "local-build"
 val githubUser: String? by project
 val githubPassword: String? by project
 
