@@ -86,6 +86,17 @@ open class JsonMessage(
         requireAll(key, values.map(Enum<*>::name))
     }
 
+    fun require(key: String, parser: (JsonNode) -> Any) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing required key $key")
+        try {
+            parser(node)
+        } catch (err: Exception) {
+            return problems.error("Required $key did not match the predicate: ${err.message}")
+        }
+        accessor(key)
+    }
+
     fun forbid(key: String) {
         val node = node(key)
         if (!node.isMissingNode && !node.isNull) return problems.error("Forbidden key $key exists")

@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -22,6 +23,21 @@ internal class JsonMessageTest {
             }
             assertTrue(it.hasErrors()) { "was not supposed to recognize $InvalidJson" }
         }
+    }
+
+    @Test
+    internal fun `custom parser`() {
+        val problems1 = MessageProblems("")
+        JsonMessage("{\"foo\": \"bar\"}", problems1).apply {
+            require("foo", JsonNode::asLocalDate)
+        }
+        assertTrue(problems1.hasErrors())
+
+        val problems2 = MessageProblems("")
+        JsonMessage("{\"foo\": \"2020-01-01\"}", problems2).apply {
+            require("foo", JsonNode::asLocalDate)
+        }
+        assertFalse(problems2.hasErrors())
     }
 
     @Test
