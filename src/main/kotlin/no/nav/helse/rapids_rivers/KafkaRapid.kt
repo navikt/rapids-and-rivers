@@ -45,12 +45,10 @@ class KafkaRapid(
 
     override fun publish(message: String) {
         producer.send(ProducerRecord(rapidTopic, message))
-        producer.flush()
     }
 
     override fun publish(key: String, message: String) {
         producer.send(ProducerRecord(rapidTopic, key, message))
-        producer.flush()
     }
 
     override fun start() {
