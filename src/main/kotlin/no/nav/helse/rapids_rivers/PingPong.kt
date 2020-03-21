@@ -9,7 +9,7 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
     private val log = LoggerFactory.getLogger(this::class.java)
 
     init {
-        log.info("responding to ping as app_name=$appName instance_id=$instanceId")
+        log.info("registering ping river for app_name=$appName instance_id=$instanceId")
 
         River(rapidsConnection).apply {
             validate { it.requireValue("@event_name", "ping") }
@@ -17,6 +17,7 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
     }
 
     override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+        log.info("responding to ping as app_name=$appName instance_id=$instanceId")
         packet["@event_name"] = "pong"
         packet["pong_time"] = LocalDateTime.now()
         packet["app_name"] = appName
