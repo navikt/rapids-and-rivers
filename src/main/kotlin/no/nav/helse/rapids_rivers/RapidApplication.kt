@@ -25,6 +25,8 @@ class RapidApplication internal constructor(
 
         if (appName != null) {
             PingPong(rapid, appName, instanceId)
+        } else {
+            log.info("not responding to pings; no app name set.")
         }
     }
 
@@ -143,7 +145,7 @@ class RapidApplication internal constructor(
         companion object {
             fun fromEnv(env: Map<String, String>) =
                 RapidApplicationConfig(
-                    appName = generateAppName(env) ?: env["RAPID_APP_NAME"],
+                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured").let { null },
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
                     kafkaConfig = KafkaConfig(
@@ -159,9 +161,9 @@ class RapidApplication internal constructor(
                 )
 
             private fun generateAppName(env: Map<String, String>): String? {
-                val appName = env["NAIS_APP_NAME"] ?: return null
-                val namespace = env["NAIS_NAMESPACE"] ?: return null
-                val cluster = env["NAIS_CLUSTER_NAME"] ?: return null
+                val appName = env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set").let { null }
+                val namespace = env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set").let { null }
+                val cluster = env["NAIS_CLUSTER_NAME"] ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
                 return "$appName-$cluster-$namespace"
             }
         }

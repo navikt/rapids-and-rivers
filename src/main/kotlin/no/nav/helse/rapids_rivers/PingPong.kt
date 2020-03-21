@@ -1,10 +1,16 @@
 package no.nav.helse.rapids_rivers
 
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
 
 class PingPong(rapidsConnection: RapidsConnection, private val appName: String, private val instanceId: String) :
     River.PacketListener {
+
+    private val log = LoggerFactory.getLogger(this::class.java)
+
     init {
+        log.info("responding to ping as app_name=$appName instance_id=$instanceId")
+
         River(rapidsConnection).apply {
             validate { it.requireValue("@event_name", "ping") }
         }.register(this)
