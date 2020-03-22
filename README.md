@@ -6,6 +6,26 @@ Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids an
 
 - Alle publiserer på rapid. Kan lese fra flere topics, men publiserer kun på rapid-topic
 - Rivers filtrerer meldinger etter hvilke kriterier de har
+- `isalive` er true så snart rapids connection er startet
+- `isready` er true så snart `onStartup`-lytterne er ferdige. KafkaRapid vil ikke begynne å polle meldinger før etter 
+onStartup-lytterne er ferdige, og vil dermed ikke bli assignet partisjoner av brokerne.
+
+### Kjøreregler
+
+#### Appen min har database
+
+- Kjør migreringer i `onStartup`
+- Bruk rollout strategy `Recreate`. Ellers vil du ha én pod som leser meldinger og skriver til db, mens den andre holder på med migreringer 
+
+#### Appen min har rest-api (og database)
+
+- Samme kjøreregler som over, bare at du vil få nedetid på api-et
+- Rest-api-delen av appen bør skilles ut som egen app som har readonly-connection mot databasen. Dersom migreringene er 
+bakover-kompatible så kan unngår man nedetid, og man kan migrere en "live" database
+
+### Appen min består bare av kafka
+
+- Tut å kjør. Rollout strategy `RollingUpdate` vil fungere helt utmerket
 
 ## Quick start 
 
