@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -28,12 +29,17 @@ class KafkaRapid(
 
     private val stringDeserializer = StringDeserializer()
     private val stringSerializer = StringSerializer()
+    private val autoCommit = consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".toLowerCase() } ?: false
     private val consumer = KafkaConsumer(consumerConfig, stringDeserializer, stringDeserializer)
     private val producer = KafkaProducer(producerConfig, stringSerializer, stringSerializer)
 
     private val topics = listOf(rapidTopic) + extraTopics
 
     private var seekToBeginning = false
+
+    init {
+        log.info("rapid initialized, autoCommit=$autoCommit")
+    }
 
     fun seekToBeginning() {
         check(Stopped == running.get()) { "cannot reset consumer after rapid has started" }
@@ -95,7 +101,7 @@ class KafkaRapid(
             while (running.get()) {
                 consumer.poll(Duration.ofSeconds(1))
                     .forEach(::onRecord)
-                    .also { consumer.commitSync() }
+                    .also { if (!autoCommit) consumer.commitSync() }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop

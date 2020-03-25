@@ -18,7 +18,8 @@ class KafkaConfig(
     private val password: String? = null,
     private val truststore: String? = null,
     private val truststorePassword: String? = null,
-    private val autoOffsetResetConfig: String? = null
+    private val autoOffsetResetConfig: String? = null,
+    private val autoCommit: Boolean? = false
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -26,7 +27,7 @@ class KafkaConfig(
         putAll(kafkaBaseConfig())
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
-        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
 
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxRecords")
         // assuming a "worst case" scenario where it takes 2 seconds to process each message;

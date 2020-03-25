@@ -155,7 +155,8 @@ class RapidApplication internal constructor(
                         password = "/var/run/secrets/nais.io/service_user/password".readFile(),
                         truststore = env["NAV_TRUSTSTORE_PATH"],
                         truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
-                        autoOffsetResetConfig = env["KAFKA_RESET_POLICY"]
+                        autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
+                        autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() }
                     ),
                     httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
                 )
