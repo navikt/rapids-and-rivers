@@ -1,9 +1,6 @@
 package no.nav.helse.rapids_rivers
 
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
@@ -78,6 +75,7 @@ class KafkaRapid(
 
     override fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
         log.info("partitions revoked: $partitions")
+        partitions.forEach { it.commitSync() }
         statusListeners.forEach { it.onNotReady(this) }
     }
 
@@ -99,9 +97,15 @@ class KafkaRapid(
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                consumer.poll(Duration.ofSeconds(1))
-                    .forEach(::onRecord)
-                    .also { if (!autoCommit) consumer.commitSync() }
+                consumer.poll(Duration.ofSeconds(1)).also { records ->
+                    records.partitions().forEach { partition ->
+                        records.records(partition)
+                            .takeUnless(List<*>::isEmpty)
+                            ?.also { log.info("fetched ${it.size} records from partition=$partition from offset=${it.first().offset()} to offset=${it.last().offset()}") }
+                            ?.onEach(::onRecord)
+                            ?.also { partition.commitSync() }
+                    }
+                }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop
@@ -110,6 +114,13 @@ class KafkaRapid(
             statusListeners.forEach { it.onShutdown(this) }
             closeResources()
         }
+    }
+
+    private fun TopicPartition.commitSync() {
+        if (autoCommit) return
+        val offset = consumer.position(this)
+        log.info("committing offset offset=$offset for partition=$this")
+        consumer.commitSync(mapOf(this to OffsetAndMetadata(offset)))
     }
 
     private fun closeResources() {
