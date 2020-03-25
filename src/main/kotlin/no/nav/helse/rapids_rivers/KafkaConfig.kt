@@ -7,6 +7,7 @@ import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.time.Duration
 import java.util.*
 
 // Understands how to configure kafka from environment variables
@@ -21,13 +22,21 @@ class KafkaConfig(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    internal fun consumerConfig() = kafkaBaseConfig().apply {
+    internal fun consumerConfig(maxRecords: Int = 100) = Properties().apply {
+        putAll(kafkaBaseConfig())
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+
+        put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxRecords")
+        // assuming a "worst case" scenario where it takes 2 seconds to process each message;
+        // then set MAX_POLL_INTERVAL_MS_CONFIG 1 minute above this "worst case" limit so
+        // the broker doesn't think we have died (and revokes partitions)
+        put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "${Duration.ofSeconds(60 + maxRecords * 2.toLong()).toMillis()}")
     }
 
-    internal fun producerConfig() = kafkaBaseConfig().apply {
+    internal fun producerConfig() = Properties().apply {
+        putAll(kafkaBaseConfig())
         put(ProducerConfig.ACKS_CONFIG, "1")
         put(ProducerConfig.LINGER_MS_CONFIG, "0")
         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
