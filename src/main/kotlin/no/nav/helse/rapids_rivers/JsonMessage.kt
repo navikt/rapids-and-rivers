@@ -5,9 +5,11 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import java.net.InetAddress
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -25,10 +27,13 @@ open class JsonMessage(
 
         private const val nestedKeySeparator = '.'
         private const val ReadCountKey = "system_read_count"
+        private const val ParticipatingServicesKey = "system_participating_services"
+
+        private val serviceName: String? = System.getenv("NAIS_APP_NAME")
+        private val serviceHostname = serviceName?.let { InetAddress.getLocalHost().hostName }
     }
 
     private val json: JsonNode
-
     private val recognizedKeys = mutableMapOf<String, JsonNode>()
 
     init {
@@ -39,6 +44,16 @@ open class JsonMessage(
         }
 
         set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)
+
+        if (serviceName != null && serviceHostname != null) {
+            val entry = mapOf(
+                "service" to serviceName,
+                "instance" to serviceHostname,
+                "time" to LocalDateTime.now()
+            )
+            if (json.path(ParticipatingServicesKey).isMissingOrNull()) set(ParticipatingServicesKey, listOf(entry))
+            else (json.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
+        }
     }
 
     fun requireKey(vararg keys: String) {

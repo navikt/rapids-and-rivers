@@ -14,6 +14,7 @@ import java.util.*
 class KafkaConfig(
     private val bootstrapServers: String,
     private val consumerGroupId: String,
+    private val clientId: String? = null,
     private val username: String? = null,
     private val password: String? = null,
     private val truststore: String? = null,
@@ -37,6 +38,7 @@ class KafkaConfig(
     internal fun consumerConfig() = Properties().apply {
         putAll(kafkaBaseConfig())
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
+        clientId?.also { put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-$it") }
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxPollRecords")
@@ -45,6 +47,7 @@ class KafkaConfig(
 
     internal fun producerConfig() = Properties().apply {
         putAll(kafkaBaseConfig())
+        clientId?.also { put(ProducerConfig.CLIENT_ID_CONFIG, "producer-$it") }
         put(ProducerConfig.ACKS_CONFIG, "1")
         put(ProducerConfig.LINGER_MS_CONFIG, "0")
         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")

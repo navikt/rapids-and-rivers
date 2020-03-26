@@ -6,6 +6,7 @@ import io.prometheus.client.CollectorRegistry
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
+import java.net.InetAddress
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -13,10 +14,9 @@ import java.util.concurrent.TimeUnit
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
     private val rapid: RapidsConnection,
-    private val appName: String? = null
+    private val appName: String? = null,
+    private val instanceId: String
 ) : RapidsConnection(), RapidsConnection.MessageListener, RapidsConnection.StatusListener {
-
-    private val instanceId = UUID.randomUUID().toString()
 
     init {
         Runtime.getRuntime().addShutdownHook(Thread(::shutdownHook))
@@ -127,7 +127,7 @@ class RapidApplication internal constructor(
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)
-            return RapidApplication(app, rapid, config.appName)
+            return RapidApplication(app, rapid, config.appName, config.instanceId)
         }
 
         private fun uncaughtExceptionHandler(thread: Thread, err: Throwable) {
@@ -137,20 +137,23 @@ class RapidApplication internal constructor(
 
     class RapidApplicationConfig(
         internal val appName: String?,
+        internal val instanceId: String,
         internal val rapidTopic: String,
         internal val extraTopics: List<String> = emptyList(),
         internal val kafkaConfig: KafkaConfig,
         internal val httpPort: Int = 8080
     ) {
         companion object {
-            fun fromEnv(env: Map<String, String>) =
+            fun fromEnv(env: Map<String, String>) = generateInstanceId(env).let { instanceId ->
                 RapidApplicationConfig(
                     appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured").let { null },
+                    instanceId = instanceId,
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
                     kafkaConfig = KafkaConfig(
                         bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
                         consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
+                        clientId = instanceId,
                         username = "/var/run/secrets/nais.io/service_user/username".readFile(),
                         password = "/var/run/secrets/nais.io/service_user/password".readFile(),
                         truststore = env["NAV_TRUSTSTORE_PATH"],
@@ -160,6 +163,12 @@ class RapidApplication internal constructor(
                     ),
                     httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
                 )
+            }
+
+            private fun generateInstanceId(env: Map<String, String>): String {
+                if (env.containsKey("NAIS_APP_NAME")) return InetAddress.getLocalHost().hostName
+                return UUID.randomUUID().toString()
+            }
 
             private fun generateAppName(env: Map<String, String>): String? {
                 val appName = env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set").let { null }
