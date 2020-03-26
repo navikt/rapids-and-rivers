@@ -19,21 +19,28 @@ class KafkaConfig(
     private val truststore: String? = null,
     private val truststorePassword: String? = null,
     private val autoOffsetResetConfig: String? = null,
-    private val autoCommit: Boolean? = false
+    private val autoCommit: Boolean? = false,
+    maxRecords: Int? = null
 ) {
+    private companion object {
+        private const val DefaultMaxRecords = 200
+    }
+
+    private val maxPollRecords = maxRecords ?: DefaultMaxRecords
+    // assuming a "worst case" scenario where it takes 2 seconds to process each message;
+    // then set MAX_POLL_INTERVAL_MS_CONFIG 1 minute above this "worst case" limit so
+    // the broker doesn't think we have died (and revokes partitions)
+    private val maxPollIntervalMs = Duration.ofSeconds(60 + maxPollRecords * 2.toLong()).toMillis()
+
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    internal fun consumerConfig(maxRecords: Int = 100) = Properties().apply {
+    internal fun consumerConfig() = Properties().apply {
         putAll(kafkaBaseConfig())
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
-
-        put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxRecords")
-        // assuming a "worst case" scenario where it takes 2 seconds to process each message;
-        // then set MAX_POLL_INTERVAL_MS_CONFIG 1 minute above this "worst case" limit so
-        // the broker doesn't think we have died (and revokes partitions)
-        put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "${Duration.ofSeconds(60 + maxRecords * 2.toLong()).toMillis()}")
+        put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxPollRecords")
+        put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "$maxPollIntervalMs")
     }
 
     internal fun producerConfig() = Properties().apply {

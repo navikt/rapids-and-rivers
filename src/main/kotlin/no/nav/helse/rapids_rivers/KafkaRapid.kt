@@ -86,11 +86,10 @@ class KafkaRapid(
         seekToBeginning = false
     }
 
-    private fun onRecords(partition: TopicPartition, records: List<ConsumerRecord<String, String>>) {
-        if (records.isEmpty()) return
-        log.debug("fetched ${records.size} records from partition=$partition from offset=${records.first().offset()} to offset=${records.last().offset()}")
+    private fun onRecords(records: ConsumerRecords<String, String>) {
+        if (records.isEmpty) return // poll returns an empty collection in case of rebalancing
         records.onEach(::onRecord)
-        partition.commitSync()
+        consumer.commitSync()
     }
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
@@ -104,9 +103,7 @@ class KafkaRapid(
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                consumer.poll(Duration.ofSeconds(1)).also { records ->
-                    records.partitions().forEach { partition -> onRecords(partition, records.records(partition)) }
-                }
+                consumer.poll(Duration.ofSeconds(1)).also(::onRecords)
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop
@@ -120,7 +117,7 @@ class KafkaRapid(
     private fun TopicPartition.commitSync() {
         if (autoCommit) return
         val offset = consumer.position(this)
-        log.debug("committing offset offset=$offset for partition=$this")
+        log.info("committing offset offset=$offset for partition=$this")
         consumer.commitSync(mapOf(this to OffsetAndMetadata(offset)))
     }
 
