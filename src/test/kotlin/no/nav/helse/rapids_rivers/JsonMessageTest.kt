@@ -62,6 +62,26 @@ internal class JsonMessageTest {
     }
 
     @Test
+    internal fun `set value`() {
+        val problems = MessageProblems("{}")
+        val message = JsonMessage("{}", problems)
+        assertThrows<IllegalArgumentException> { message["key"] }
+        message["key"] = "Hello!"
+        assertEquals("Hello!", message["key"].asText())
+    }
+
+    @Test
+    internal fun `update value`() {
+        val problems = MessageProblems("{}")
+        val message = JsonMessage("{}", problems).apply {
+            interestedIn("key")
+        }
+        assertTrue(message["key"].isMissingNode)
+        message["key"] = "Hello!"
+        assertEquals("Hello!", message["key"].asText())
+    }
+
+    @Test
     internal fun `extended message`() {
         "not_valid_json".also { json ->
             MessageProblems(json).also {

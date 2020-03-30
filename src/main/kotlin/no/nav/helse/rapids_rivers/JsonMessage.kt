@@ -137,7 +137,9 @@ open class JsonMessage(
         requireNotNull(recognizedKeys[key]) { "$key is unknown; keys must be declared as required, forbidden, or interesting" }
 
     operator fun set(key: String, value: Any) {
-        (json as ObjectNode).replace(key, objectMapper.valueToTree(value))
+        (json as ObjectNode).replace(key, objectMapper.valueToTree<JsonNode>(value).also {
+            recognizedKeys[key] = it
+        })
     }
 
     fun toJson(): String = objectMapper.writeValueAsString(json)
