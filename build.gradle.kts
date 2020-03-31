@@ -41,16 +41,16 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_12
-    targetCompatibility = JavaVersion.VERSION_12
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "12"
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-    kotlinOptions.jvmTarget = "12"
+    kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks.withType<Test> {

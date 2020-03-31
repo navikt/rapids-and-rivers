@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/navikt/rapids-and-rivers.svg)](https://jitpack.io/#navikt/rapids-and-rivers)
+
 # Rapids and rivers
 
 Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids and rivers til @fredgeorge.
