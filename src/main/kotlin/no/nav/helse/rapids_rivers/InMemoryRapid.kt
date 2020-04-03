@@ -23,7 +23,7 @@ class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
     }
 
     override fun stop() {
-        ktor.stop(5, 5, TimeUnit.SECONDS)
+        ktor.stop(5000, 5000)
     }
 
     fun sendToListeners(message: String) {

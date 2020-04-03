@@ -41,7 +41,7 @@ class RapidApplication internal constructor(
 
     override fun stop() {
         rapid.stop()
-        ktor.stop(1, 1, TimeUnit.SECONDS)
+        ktor.stop(1000, 1000)
     }
 
     override fun publish(message: String) {
