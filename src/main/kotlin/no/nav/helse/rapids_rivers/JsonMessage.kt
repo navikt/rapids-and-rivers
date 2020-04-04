@@ -115,14 +115,18 @@ open class JsonMessage(
         accessor(key)
     }
 
-    fun forbid(key: String) {
+    fun forbid(vararg key: String) {
+        key.forEach { forbid(it) }
+    }
+
+    private fun forbid(key: String) {
         val node = node(key)
         if (!node.isMissingNode && !node.isNull) return problems.error("Forbidden key $key exists")
         accessor(key)
     }
 
-    fun interestedIn(key: String) {
-        accessor(key)
+    fun interestedIn(vararg key: String) {
+        key.forEach { accessor(it) }
     }
 
     private fun accessor(key: String) {

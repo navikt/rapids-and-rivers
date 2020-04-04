@@ -212,9 +212,12 @@ internal class JsonMessageTest {
     @Test
     internal fun `interestedIn can return null`() {
         val message = message("{\"foo\": null}").apply {
-            interestedIn("foo")
+            interestedIn("foo", "bar")
         }
+        assertTrue(message["foo"].isNull)
+        assertTrue(message["bar"].isMissingNode)
         assertNull(message["foo"].textValue())
+        assertNull(message["bar"].textValue())
     }
 
     @Test
@@ -225,6 +228,8 @@ internal class JsonMessageTest {
         assertFalse(problems.hasErrors())
         message("{\"key\": null}").apply { forbid("key") }
         assertFalse(problems.hasErrors())
+        message("{\"other\": \"baz\", \"key2\": \"foo\"}").apply { forbid("key1", "key2") }
+        assertTrue(problems.hasErrors())
     }
 
     @Test
