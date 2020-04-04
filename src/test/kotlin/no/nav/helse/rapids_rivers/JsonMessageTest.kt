@@ -187,6 +187,18 @@ internal class JsonMessageTest {
     }
 
     @Test
+    internal fun requireArray() {
+        message("{\"foo\": {}}").apply {
+            requireArray("foo")
+            assertTrue(problems.hasErrors())
+        }
+        message("{\"foo\": []}").apply {
+            requireArray("foo")
+            assertFalse(problems.hasErrors())
+        }
+    }
+
+    @Test
     internal fun requiredValueOneOf() {
         "{\"foo\": \"bar\" }".also { json ->
             message(json).also {

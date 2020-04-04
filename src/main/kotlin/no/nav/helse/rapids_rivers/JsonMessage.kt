@@ -84,6 +84,13 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun requireArray(key: String) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (!node.isArray) return problems.error("Required $key is not an array")
+        accessor(key)
+    }
+
     fun requireContains(key: String, value: String) {
         requireAll(key, listOf(value))
     }
