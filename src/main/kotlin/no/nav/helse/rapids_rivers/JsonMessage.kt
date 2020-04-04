@@ -63,7 +63,7 @@ open class JsonMessage(
         keys.forEach { requireKey(it) }
     }
 
-    fun requireKey(key: String) {
+    private fun requireKey(key: String) {
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (node.isNull) return problems.error("Required key $key is null")

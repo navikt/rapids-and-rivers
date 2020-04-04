@@ -121,6 +121,11 @@ internal class JsonMessageTest {
                 assertEquals("bar", it["foo"].textValue())
             }
             message(json).also {
+                it.requireKey("foo", "baz")
+                assertEquals("bar", it["foo"].textValue())
+                assertThrows<IllegalArgumentException> { it["baz"] }
+            }
+            message(json).also {
                 assertThrows<IllegalArgumentException> { it["foo"] }
                 it.interestedIn("foo")
                 assertEquals("bar", it["foo"].textValue())
