@@ -8,6 +8,10 @@ class MessageProblems(private val originalMessage: String) {
         errors.add(String.format(melding, *params))
     }
 
+    internal fun error(melding: String, other: MessageProblems) {
+        other.errors.forEach { errors.add("$melding $it") }
+    }
+
     fun severe(melding: String, vararg params: Any): Nothing {
         severe.add(String.format(melding, *params))
         throw MessageException(this)

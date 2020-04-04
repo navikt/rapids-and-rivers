@@ -199,6 +199,28 @@ internal class JsonMessageTest {
     }
 
     @Test
+    internal fun requireArrayElements() {
+        message("{\"foo\": []}").apply {
+            requireArray("foo") {
+                requireKey("bar")
+            }
+            assertFalse(problems.hasErrors())
+        }
+        message("{\"foo\": [{}]}").apply {
+            requireArray("foo") {
+                requireKey("bar")
+            }
+            assertTrue(problems.hasErrors())
+        }
+        message("{\"foo\": [{\"bar\":\"baz\"}]}").apply {
+            requireArray("foo") {
+                requireKey("bar")
+            }
+            assertFalse(problems.hasErrors())
+        }
+    }
+
+    @Test
     internal fun requiredValueOneOf() {
         "{\"foo\": \"bar\" }".also { json ->
             message(json).also {

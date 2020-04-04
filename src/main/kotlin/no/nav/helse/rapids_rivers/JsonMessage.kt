@@ -84,11 +84,19 @@ open class JsonMessage(
         accessor(key)
     }
 
-    fun requireArray(key: String) {
+    fun requireArray(key: String, elementsValidation: (JsonMessage.() -> Unit)? = null) {
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isArray) return problems.error("Required $key is not an array")
-        accessor(key)
+        elementsValidation?.also {
+            node.forEachIndexed { index, element ->
+                val elementJson = element.toString()
+                val elementProblems = MessageProblems(elementJson)
+                JsonMessage(elementJson, elementProblems).apply(elementsValidation)
+                if (elementProblems.hasErrors()) problems.error("Array element #$index at $key did not pass validation:", elementProblems)
+            }
+        }
+        if (!problems.hasErrors()) accessor(key)
     }
 
     fun requireContains(key: String, value: String) {
