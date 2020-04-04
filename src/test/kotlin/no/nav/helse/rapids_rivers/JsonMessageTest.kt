@@ -177,6 +177,10 @@ internal class JsonMessageTest {
         assertThrows("{}", "foo", listOf("bar"))
         assertThrows("{\"foo\": null}", "foo", listOf("bar"))
         assertThrows("{\"foo\": [\"bar\"]}", "foo", listOf("bar","foo"))
+        message("{\"foo\": [\"bar\"]}").apply {
+            requireContains("foo", "bar")
+            assertFalse(problems.hasErrors())
+        }
 
         assertEquals("{\"foo\": [\"bar\", \"foo\"]}", "foo", listOf("bar","foo"))
         assertEquals("{\"foo\": [\"bar\", \"foo\", \"bla\"]}", "foo", listOf("bar","foo"))

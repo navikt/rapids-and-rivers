@@ -63,13 +63,6 @@ open class JsonMessage(
         keys.forEach { requireKey(it) }
     }
 
-    private fun requireKey(key: String) {
-        val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (node.isNull) return problems.error("Required key $key is null")
-        accessor(key)
-    }
-
     fun requireValue(key: String, value: Boolean) {
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
@@ -89,6 +82,10 @@ open class JsonMessage(
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isTextual || node.asText() !in values) return problems.error("Required $key must be one of $values")
         accessor(key)
+    }
+
+    fun requireContains(key: String, value: String) {
+        requireAll(key, listOf(value))
     }
 
     fun requireAll(key: String, values: List<String>) {
@@ -119,14 +116,21 @@ open class JsonMessage(
         key.forEach { forbid(it) }
     }
 
+    fun interestedIn(vararg key: String) {
+        key.forEach { accessor(it) }
+    }
+
+    private fun requireKey(key: String) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (node.isNull) return problems.error("Required key $key is null")
+        accessor(key)
+    }
+
     private fun forbid(key: String) {
         val node = node(key)
         if (!node.isMissingNode && !node.isNull) return problems.error("Forbidden key $key exists")
         accessor(key)
-    }
-
-    fun interestedIn(vararg key: String) {
-        key.forEach { accessor(it) }
     }
 
     private fun accessor(key: String) {
