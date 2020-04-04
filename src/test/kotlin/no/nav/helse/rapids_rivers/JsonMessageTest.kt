@@ -16,6 +16,13 @@ internal class JsonMessageTest {
     private val InvalidJson = "foo"
 
     @Test
+    internal fun `create message from map`() {
+        assertEquals("bar", JsonMessage.newMessage(mapOf(
+            "foo" to "bar"
+        )).apply { requireKey("foo") }["foo"].asText())
+    }
+
+    @Test
     internal fun `invalid json`() {
         MessageProblems(InvalidJson).also {
             assertThrows<MessageProblems.MessageException> {

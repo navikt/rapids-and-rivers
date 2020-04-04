@@ -19,7 +19,7 @@ open class JsonMessage(
     originalMessage: String,
     private val problems: MessageProblems
 ) {
-    private companion object {
+    companion object {
         private val objectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
@@ -31,6 +31,9 @@ open class JsonMessage(
 
         private val serviceName: String? = System.getenv("NAIS_APP_NAME")
         private val serviceHostname = serviceName?.let { InetAddress.getLocalHost().hostName }
+
+        fun newMessage(map: Map<String, Any> = emptyMap()) =
+            objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it)) }
     }
 
     private val json: JsonNode
