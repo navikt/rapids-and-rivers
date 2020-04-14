@@ -135,6 +135,16 @@ open class JsonMessage(
         key.forEach { accessor(it) }
     }
 
+    fun interestedIn(key: String, parser: (JsonNode) -> Any) {
+        val node = node(key)
+        try {
+            node.takeUnless(JsonNode::isMissingOrNull)?.also { parser(it) }
+        } catch (err: Exception) {
+            return problems.error("Optional $key did not match the predicate: ${err.message}")
+        }
+        accessor(key)
+    }
+
     private fun requireKey(key: String) {
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")

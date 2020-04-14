@@ -34,17 +34,36 @@ internal class JsonMessageTest {
 
     @Test
     internal fun `custom parser`() {
-        val problems1 = MessageProblems("")
-        JsonMessage("{\"foo\": \"bar\"}", problems1).apply {
-            require("foo", JsonNode::asLocalDate)
+        MessageProblems("").apply {
+            JsonMessage("{\"foo\": \"bar\"}", this).apply {
+                require("foo", JsonNode::asLocalDate)
+            }
+            assertTrue(hasErrors())
         }
-        assertTrue(problems1.hasErrors())
-
-        val problems2 = MessageProblems("")
-        JsonMessage("{\"foo\": \"2020-01-01\"}", problems2).apply {
-            require("foo", JsonNode::asLocalDate)
+        MessageProblems("").apply {
+            JsonMessage("{\"foo\": \"bar\"}", this).apply {
+                interestedIn("foo", JsonNode::asLocalDate)
+            }
+            assertTrue(hasErrors())
         }
-        assertFalse(problems2.hasErrors())
+        MessageProblems("").apply {
+            JsonMessage("{\"foo\": \"2020-01-01\"}", this).apply {
+                require("foo", JsonNode::asLocalDate)
+            }
+            assertFalse(hasErrors())
+        }
+        MessageProblems("").apply {
+            JsonMessage("{\"foo\": \"2020-01-01\"}", this).apply {
+                interestedIn("foo", JsonNode::asLocalDate)
+            }
+            assertFalse(hasErrors())
+        }
+        MessageProblems("").apply {
+            JsonMessage("{\"foo\": null}", this).apply {
+                interestedIn("foo", JsonNode::asLocalDate)
+            }
+            assertFalse(hasErrors())
+        }
     }
 
     @Test
