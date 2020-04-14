@@ -10,10 +10,12 @@ class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
     private val messagesSendt = mutableListOf<RapidMessage>()
     val outgoingMessages get() = messagesSendt.toList()
 
+    @Synchronized
     override fun publish(message: String) {
         messagesSendt.add(RapidMessage(null, message))
     }
 
+    @Synchronized
     override fun publish(key: String, message: String) {
         messagesSendt.add(RapidMessage(key, message))
     }

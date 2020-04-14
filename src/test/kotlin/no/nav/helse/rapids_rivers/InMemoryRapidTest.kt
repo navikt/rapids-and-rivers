@@ -1,7 +1,9 @@
 package no.nav.helse.rapids_rivers
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.util.KtorExperimentalAPI
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -9,7 +11,7 @@ internal class InMemoryRapidTest {
 
     @Test
     internal fun test() {
-        val rapid = inMemoryRapid {  }
+        val rapid = inMemoryRapid { }
         InMemoryRiver(rapid)
 
         rapid.sendToListeners("sldjjfnqaolsdjcb")
@@ -24,7 +26,25 @@ internal class InMemoryRapidTest {
         }
     }
 
-    internal class InMemoryRiver(rapidsConnection: RapidsConnection) : River.PacketListener {
+    @Test
+    internal fun `inmemory rapid is thread safe`() {
+        inMemoryRapid { }.also { rapid ->
+            object : InMemoryRiver(rapid) {
+                private val coroutineScope = CoroutineScope(Dispatchers.IO)
+                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                    coroutineScope.launch {
+                        super.onPacket(packet, context)
+                    }
+                }
+            }
+            (1..100).forEach { _ -> rapid.sendToListeners("""{"@behov":"hei"}""") }
+        }.also {
+            Thread.sleep(1000) //simple wait for coroutines to finish
+            assertEquals(100, it.outgoingMessages.size)
+        }
+    }
+
+    internal open class InMemoryRiver(rapidsConnection: RapidsConnection) : River.PacketListener {
         init {
             River(rapidsConnection).apply {
                 validate { it.requireKey("@behov") }
