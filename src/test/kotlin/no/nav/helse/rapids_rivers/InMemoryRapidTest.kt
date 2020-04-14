@@ -27,7 +27,7 @@ internal class InMemoryRapidTest {
     }
 
     @Test
-    internal fun `inmemory rapid is thread safe`() {
+    internal fun `Producing packets on inmemory rapid is thread safe`() {
         inMemoryRapid { }.also { rapid ->
             object : InMemoryRiver(rapid) {
                 private val coroutineScope = CoroutineScope(Dispatchers.IO)
