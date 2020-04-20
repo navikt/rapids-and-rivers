@@ -197,7 +197,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun demandValue() {
+    internal fun demandAll() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -231,6 +231,54 @@ internal class JsonMessageTest {
                     demandValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                     assertEquals("bar", this["foo"].asText())
+                }
+            }
+        }
+    }
+
+    @Test
+    internal fun demandValue() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": \"bar\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": [\"bar\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandAll("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
                 }
             }
         }
