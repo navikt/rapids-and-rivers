@@ -169,6 +169,74 @@ internal class JsonMessageTest {
     }
 
     @Test
+    internal fun demandKey() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandKey("foo") }
+                    assertTrue(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandKey("foo") }
+                    assertTrue(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandKey("foo")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
+    internal fun demandValue() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": \"bar\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandValue("foo", "bar")
+                    assertFalse(problems.hasErrors())
+                    assertEquals("bar", this["foo"].asText())
+                }
+            }
+        }
+    }
+
+    @Test
     internal fun requiredValue() {
         "{}".also {
             assertThrows(it, "foo", "bar")

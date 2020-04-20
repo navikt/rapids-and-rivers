@@ -47,5 +47,5 @@ class MessageProblems(private val originalMessage: String) {
         }
     }
 
-    class MessageException(problems: MessageProblems) : RuntimeException(problems.toString())
+    class MessageException(val problems: MessageProblems) : RuntimeException(problems.toString())
 }

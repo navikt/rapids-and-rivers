@@ -59,6 +59,20 @@ open class JsonMessage(
         }
     }
 
+    fun demandKey(key: String) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (node.isNull) problems.severe("Demanded key $key is null")
+        accessor(key)
+    }
+
+    fun demandValue(key: String, value: String) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (!node.isTextual || node.asText() != value) problems.severe("Demanded $key is not string $value")
+        accessor(key)
+    }
+
     fun requireKey(vararg keys: String) {
         keys.forEach { requireKey(it) }
     }

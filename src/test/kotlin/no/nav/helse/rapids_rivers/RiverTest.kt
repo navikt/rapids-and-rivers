@@ -65,6 +65,13 @@ internal class RiverTest {
                     gotMessage = true
                 }
 
+                override fun onSevere(
+                    error: MessageProblems.MessageException,
+                    context: RapidsConnection.MessageContext
+                ) {
+                    messageProblems = error.problems
+                }
+
                 override fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {
                     messageProblems = problems
                 }

@@ -27,12 +27,16 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             if (problems.hasErrors()) return onError(problems, context)
             onPacket(packet, context)
         } catch (err: MessageProblems.MessageException) {
-            return onError(problems, context)
+            return onSevere(err, context)
         }
     }
 
     private fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
         listeners.forEach { it.onPacket(packet, context) }
+    }
+
+    private fun onSevere(error: MessageProblems.MessageException, context: RapidsConnection.MessageContext) {
+        listeners.forEach { it.onSevere(error, context) }
     }
 
     private fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {
@@ -41,6 +45,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
 
     interface PacketListener {
         fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext)
+        fun onSevere(error: MessageProblems.MessageException, context: RapidsConnection.MessageContext) {}
         fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {}
     }
 }
