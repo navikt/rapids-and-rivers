@@ -81,7 +81,7 @@ open class JsonMessage(
     }
 
     fun demandAll(key: String, vararg values: Enum<*>) {
-        requireAll(key, values.map(Enum<*>::name))
+        demandAll(key, values.map(Enum<*>::name))
     }
 
     fun requireKey(vararg keys: String) {
