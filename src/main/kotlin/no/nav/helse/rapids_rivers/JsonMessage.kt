@@ -59,6 +59,16 @@ open class JsonMessage(
         }
     }
 
+    fun rejectKey(vararg key: String) {
+        key.forEach { rejectKey(it) }
+    }
+
+    private fun rejectKey(key: String) {
+        val node = node(key)
+        if (!node.isMissingNode && !node.isNull) problems.severe("Rejected key $key exists")
+        accessor(key)
+    }
+
     fun demandKey(key: String) {
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
@@ -70,6 +80,13 @@ open class JsonMessage(
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (!node.isTextual || node.asText() != value) problems.severe("Demanded $key is not string $value")
+        accessor(key)
+    }
+
+    fun demandValue(key: String, value: Boolean) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (!node.isBoolean || node.booleanValue() != value) problems.severe("Demanded $key is not boolean $value")
         accessor(key)
     }
 

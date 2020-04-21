@@ -169,6 +169,34 @@ internal class JsonMessageTest {
     }
 
     @Test
+    internal fun rejectKey() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    rejectKey("foo")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    rejectKey("foo")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { rejectKey("foo") }
+                    assertTrue(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
     internal fun demandKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
@@ -278,6 +306,39 @@ internal class JsonMessageTest {
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
                     demandAll("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
+    internal fun demandValueBoolean() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
+                }
+            }
+        }
+        "{\"foo\": true}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
+                }
+            }
+        }
+        "{\"foo\": false}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandValue("foo", false)
                     assertFalse(problems.hasErrors())
                 }
             }
