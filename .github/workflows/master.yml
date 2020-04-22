@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v1
       - name: Set release tag
         run: |
-          export TAG_NAME="1.$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M).$(echo $GITHUB_SHA | cut -c 1-12)"
+          export TAG_NAME="1.$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M).$(echo $GITHUB_SHA | cut -c 1-7)"
           echo "::set-env name=RELEASE_TAG::$TAG_NAME"
       - name: Set changelog
         # (Escape newlines see https://github.com/actions/create-release/issues/25)
