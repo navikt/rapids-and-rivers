@@ -16,14 +16,14 @@ internal class JsonMessageTest {
     private val InvalidJson = "foo"
 
     @Test
-    internal fun `create message from map`() {
+    fun `create message from map`() {
         assertEquals("bar", JsonMessage.newMessage(mapOf(
             "foo" to "bar"
         )).apply { requireKey("foo") }["foo"].asText())
     }
 
     @Test
-    internal fun `invalid json`() {
+    fun `invalid json`() {
         MessageProblems(InvalidJson).also {
             assertThrows<MessageProblems.MessageException> {
                 JsonMessage(InvalidJson, it)
@@ -33,7 +33,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `custom parser`() {
+    fun `custom parser`() {
         MessageProblems("").apply {
             JsonMessage("{\"foo\": \"bar\"}", this).apply {
                 require("foo", JsonNode::asLocalDate)
@@ -67,14 +67,14 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `valid json`() {
+    fun `valid json`() {
         val problems = MessageProblems(ValidJson)
         JsonMessage(ValidJson, problems)
         assertFalse(problems.hasErrors())
     }
 
     @Test
-    internal fun `read count`() {
+    fun `read count`() {
         val problems = MessageProblems("{}")
         val firstMessage = JsonMessage("{}", problems).apply {
             interestedIn("system_read_count")
@@ -88,7 +88,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `set value`() {
+    fun `set value`() {
         val problems = MessageProblems("{}")
         val message = JsonMessage("{}", problems)
         assertThrows<IllegalArgumentException> { message["key"] }
@@ -97,7 +97,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `update value`() {
+    fun `update value`() {
         val problems = MessageProblems("{}")
         val message = JsonMessage("{}", problems).apply {
             interestedIn("key")
@@ -108,7 +108,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `extended message`() {
+    fun `extended message`() {
         "not_valid_json".also { json ->
             MessageProblems(json).also {
                 assertThrows<MessageProblems.MessageException> {
@@ -132,7 +132,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `keys must be declared before use`() {
+    fun `keys must be declared before use`() {
         "{\"foo\": \"bar\"}".also { json ->
             message(json).also {
                 assertThrows<IllegalArgumentException> { it["foo"] }
@@ -153,7 +153,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `nested keys`() {
+    fun `nested keys`() {
         "{\"foo\": { \"bar\": \"baz\" }}".also { json ->
             message(json).also {
                 assertThrows<IllegalArgumentException> { it["foo.bar"] }
@@ -169,7 +169,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun rejectKey() {
+    fun rejectKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -197,7 +197,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun demandKey() {
+    fun demandKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -225,7 +225,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun demandAll() {
+    fun demandValue() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -265,7 +265,117 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun demandValue() {
+    fun demandAllOrAny() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": [\"bar\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": [\"foo\", \"baz\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun requireAllOrAny() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
+        "{\"foo\": [\"bar\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": [\"foo\", \"baz\"]}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    requireAllOrAny("foo", listOf("bar", "baz"))
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun demandAll() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -313,7 +423,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun demandValueBoolean() {
+    fun demandValueBoolean() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
                 JsonMessage(json, problems).apply {
@@ -346,7 +456,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requiredValue() {
+    fun requiredValue() {
         "{}".also {
             assertThrows(it, "foo", "bar")
             assertThrows(it, "foo", false)
@@ -363,13 +473,13 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requiredNestedValue() {
+    fun requiredNestedValue() {
         assertEquals("{\"foo\": { \"bar\": \"baz\" } }", "foo.bar", "baz")
         assertEquals("{\"foo\": { \"bar\": true } }", "foo.bar", true)
     }
 
     @Test
-    internal fun requiredValues() {
+    fun requiredValues() {
         assertThrows("{}", "foo", listOf("bar"))
         assertThrows("{\"foo\": null}", "foo", listOf("bar"))
         assertThrows("{\"foo\": [\"bar\"]}", "foo", listOf("bar","foo"))
@@ -383,7 +493,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requireArray() {
+    fun requireArray() {
         message("{\"foo\": {}}").apply {
             requireArray("foo")
             assertTrue(problems.hasErrors())
@@ -395,7 +505,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requireArrayElements() {
+    fun requireArrayElements() {
         message("{\"foo\": []}").apply {
             requireArray("foo") {
                 requireKey("bar")
@@ -417,7 +527,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requiredValueOneOf() {
+    fun requiredValueOneOf() {
         "{\"foo\": \"bar\" }".also { json ->
             message(json).also {
                 it.requireAny("foo", listOf("foo"))
@@ -433,12 +543,12 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun requiredNestedValues() {
+    fun requiredNestedValues() {
         assertEquals("{\"foo\": { \"bar\": [ \"baz\", \"foobar\" ] }}", "foo.bar", listOf("baz","foobar"))
     }
 
     @Test
-    internal fun `requiredKey can not return null`() {
+    fun `requiredKey can not return null`() {
         val message = message("{\"foo\": null}").apply {
             requireKey("foo")
         }
@@ -449,7 +559,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `interestedIn can return null`() {
+    fun `interestedIn can return null`() {
         val message = message("{\"foo\": null}").apply {
             interestedIn("foo", "bar")
         }
@@ -460,7 +570,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun `forbidden key`() {
+    fun `forbidden key`() {
         message("{\"key\": \"foo\"}").apply { forbid("key") }
         assertTrue(problems.hasErrors())
         message("{}").apply { forbid("key") }
@@ -472,7 +582,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun asLocalDate() {
+    fun asLocalDate() {
         assertThrows<DateTimeParseException> { MissingNode.getInstance().asLocalDate() }
         assertThrows<DateTimeParseException> { NullNode.instance.asLocalDate() }
         assertThrows<DateTimeParseException> { BooleanNode.TRUE.asLocalDate() }
@@ -484,7 +594,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun asYearMonth() {
+    fun asYearMonth() {
         assertThrows<DateTimeParseException> { MissingNode.getInstance().asYearMonth() }
         assertThrows<DateTimeParseException> { NullNode.instance.asYearMonth() }
         assertThrows<DateTimeParseException> { BooleanNode.TRUE.asYearMonth() }
@@ -496,7 +606,7 @@ internal class JsonMessageTest {
     }
 
     @Test
-    internal fun asOptionalLocalDate() {
+    fun asOptionalLocalDate() {
         assertNull(MissingNode.getInstance().asOptionalLocalDate())
         assertNull(NullNode.instance.asOptionalLocalDate())
         assertNull(BooleanNode.TRUE.asOptionalLocalDate())
@@ -509,7 +619,7 @@ internal class JsonMessageTest {
 
 
     @Test
-    internal fun asLocalDateTime() {
+    fun asLocalDateTime() {
         assertThrows<DateTimeParseException> { MissingNode.getInstance().asLocalDateTime() }
         assertThrows<DateTimeParseException> { NullNode.instance.asLocalDateTime() }
         assertThrows<DateTimeParseException> { BooleanNode.TRUE.asLocalDateTime() }

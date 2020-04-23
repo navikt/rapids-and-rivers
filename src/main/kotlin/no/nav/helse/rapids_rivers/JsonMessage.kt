@@ -97,6 +97,13 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun demandAllOrAny(key: String, values: List<String>) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (!node.isArray || node.map(JsonNode::asText).none { it in values }) problems.severe("Demanded array $key does not contain one of $values")
+        accessor(key)
+    }
+
     fun demandAll(key: String, vararg values: Enum<*>) {
         demandAll(key, values.map(Enum<*>::name))
     }
@@ -143,6 +150,15 @@ open class JsonMessage(
 
     fun requireContains(key: String, value: String) {
         requireAll(key, listOf(value))
+    }
+
+    fun requireAllOrAny(key: String, values: List<String>) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (!node.isArray || node.map(JsonNode::asText).none { it in values }) {
+            return problems.error("Required array $key does not contain one of $values")
+        }
+        accessor(key)
     }
 
     fun requireAll(key: String, values: List<String>) {
