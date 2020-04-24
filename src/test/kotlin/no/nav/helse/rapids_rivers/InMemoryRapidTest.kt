@@ -1,7 +1,6 @@
 package no.nav.helse.rapids_rivers
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.util.KtorExperimentalAPI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

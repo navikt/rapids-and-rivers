@@ -1,11 +1,11 @@
 package no.nav.helse.rapids_rivers
 
 import io.ktor.server.engine.ApplicationEngine
-import io.ktor.util.KtorExperimentalAPI
-import java.util.concurrent.TimeUnit
 
+@Deprecated("Bruk heller TestRapid: den trenger ingen ktor")
 fun inMemoryRapid(config: InMemoryRapidConfig.() -> Unit) = InMemoryRapidConfig().apply(config).build()
 
+@Deprecated("Bruk heller TestRapid: den trenger ingen ktor")
 class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
     private val messagesSendt = mutableListOf<RapidMessage>()
     val outgoingMessages get() = messagesSendt.toList()
