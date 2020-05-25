@@ -9,7 +9,6 @@ import java.io.FileNotFoundException
 import java.net.InetAddress
 import java.time.LocalDateTime
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
@@ -63,6 +62,18 @@ class RapidApplication internal constructor(
             rapidsConnection.publish(it)
         }
         statusListeners.forEach { it.onStartup(this) }
+        listeners.forEach {
+            it.onContracts().let { contracts ->
+                log.info("publishing documentation event for app_name=$appName, instance_id=$instanceId")
+                if (contracts.isEmpty()) return
+                val packet = JsonMessage("{}", MessageProblems("{}"))
+                packet["@event_name"] = "documentation"
+                packet["@opprettet"] = LocalDateTime.now()
+                packet["kontrakt"] = contracts
+                packet["app_name"] = "$appName"
+                rapidsConnection.publish(packet.toJson())
+            }
+        }
     }
 
     override fun onReady(rapidsConnection: RapidsConnection) {

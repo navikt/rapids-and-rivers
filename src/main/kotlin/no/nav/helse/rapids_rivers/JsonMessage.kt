@@ -39,6 +39,14 @@ open class JsonMessage(
     private val json: JsonNode
     private val recognizedKeys = mutableMapOf<String, JsonNode>()
 
+    data class Contract(
+            val type: String,
+            val key: String,
+            val values: List<Any>? = null
+    )
+
+    private val contracts = mutableListOf<Contract>()
+
     init {
         json = try {
             objectMapper.readTree(originalMessage)
@@ -64,12 +72,14 @@ open class JsonMessage(
     }
 
     private fun rejectKey(key: String) {
+        contracts("rejectKey", key)
         val node = node(key)
         if (!node.isMissingNode && !node.isNull) problems.severe("Rejected key $key exists")
         accessor(key)
     }
 
     fun demandKey(key: String) {
+        contracts("demandKey", key)
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (node.isNull) problems.severe("Demanded key $key is null")
@@ -77,6 +87,7 @@ open class JsonMessage(
     }
 
     fun demandValue(key: String, value: String) {
+        contracts("demandValue", key, values = listOf(value))
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (!node.isTextual || node.asText() != value) problems.severe("Demanded $key is not string $value")
@@ -84,6 +95,7 @@ open class JsonMessage(
     }
 
     fun demandValue(key: String, value: Boolean) {
+        contracts("demandValue", key, values = listOf(value))
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (!node.isBoolean || node.booleanValue() != value) problems.severe("Demanded $key is not boolean $value")
@@ -91,6 +103,7 @@ open class JsonMessage(
     }
 
     fun demandAll(key: String, values: List<String>) {
+        contracts("demandAll", key, values = values)
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (!node.isArray || !node.map(JsonNode::asText).containsAll(values)) problems.severe("Demanded $key does not contains $values")
@@ -98,6 +111,7 @@ open class JsonMessage(
     }
 
     fun demandAllOrAny(key: String, values: List<String>) {
+        contracts("demandAllOrAny", key, values = values)
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
         if (!node.isArray || node.map(JsonNode::asText).none { it in values }) problems.severe("Demanded array $key does not contain one of $values")
@@ -105,6 +119,7 @@ open class JsonMessage(
     }
 
     fun demandAll(key: String, vararg values: Enum<*>) {
+        contracts("demandAll", key, values = listOf(values))
         demandAll(key, values.map(Enum<*>::name))
     }
 
@@ -113,6 +128,7 @@ open class JsonMessage(
     }
 
     fun requireValue(key: String, value: Boolean) {
+        contracts("requireValue", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isBoolean || node.booleanValue() != value) return problems.error("Required $key is not boolean $value")
@@ -120,6 +136,7 @@ open class JsonMessage(
     }
 
     fun requireValue(key: String, value: String) {
+        contracts("requireValue", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isTextual || node.asText() != value) return problems.error("Required $key is not string $value")
@@ -127,6 +144,7 @@ open class JsonMessage(
     }
 
     fun requireAny(key: String, values: List<String>) {
+        contracts("requireAny", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isTextual || node.asText() !in values) return problems.error("Required $key must be one of $values")
@@ -134,6 +152,7 @@ open class JsonMessage(
     }
 
     fun requireArray(key: String, elementsValidation: (JsonMessage.() -> Unit)? = null) {
+        contracts("requireArray", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isArray) return problems.error("Required $key is not an array")
@@ -153,6 +172,7 @@ open class JsonMessage(
     }
 
     fun requireAllOrAny(key: String, values: List<String>) {
+        contracts("requireAllOrAny", key, values = values)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isArray || node.map(JsonNode::asText).none { it in values }) {
@@ -162,19 +182,23 @@ open class JsonMessage(
     }
 
     fun requireAll(key: String, values: List<String>) {
+        contracts("requireAll", key, values = values)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isArray || !node.map(JsonNode::asText).containsAll(values)) {
             return problems.error("Required $key does not contains $values")
         }
         accessor(key)
+
     }
 
     fun requireAll(key: String, vararg values: Enum<*>) {
+        contracts("requireAll", key, values = listOf(values))
         requireAll(key, values.map(Enum<*>::name))
     }
 
     fun require(key: String, parser: (JsonNode) -> Any) {
+        contracts("require", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         try {
@@ -183,6 +207,7 @@ open class JsonMessage(
             return problems.error("Required $key did not match the predicate: ${err.message}")
         }
         accessor(key)
+
     }
 
     fun forbid(vararg key: String) {
@@ -190,10 +215,12 @@ open class JsonMessage(
     }
 
     fun interestedIn(vararg key: String) {
+        contracts("interestedIn", *key)
         key.forEach { accessor(it) }
     }
 
     fun interestedIn(key: String, parser: (JsonNode) -> Any) {
+        contracts("interestedIn", key)
         val node = node(key)
         try {
             node.takeUnless(JsonNode::isMissingOrNull)?.also { parser(it) }
@@ -201,9 +228,11 @@ open class JsonMessage(
             return problems.error("Optional $key did not match the predicate: ${err.message}")
         }
         accessor(key)
+
     }
 
     private fun requireKey(key: String) {
+        contracts("requireKey", key)
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (node.isNull) return problems.error("Required key $key is null")
@@ -211,6 +240,7 @@ open class JsonMessage(
     }
 
     private fun forbid(key: String) {
+        contracts("forbid", key)
         val node = node(key)
         if (!node.isMissingNode && !node.isNull) return problems.error("Forbidden key $key exists")
         accessor(key)
@@ -227,6 +257,12 @@ open class JsonMessage(
         }
     }
 
+    private fun contracts(accessor: String, vararg key: String, values: List<Any>? = null) {
+        key.forEach {
+            contracts.add(Contract(type = accessor, key = it, values = values))
+        }
+    }
+
     operator fun get(key: String): JsonNode =
         requireNotNull(recognizedKeys[key]) { "$key is unknown; keys must be declared as required, forbidden, or interesting" }
 
@@ -235,6 +271,8 @@ open class JsonMessage(
             recognizedKeys[key] = it
         })
     }
+
+    fun contracts(): List<Contract> = contracts.toList()
 
     fun toJson(): String = objectMapper.writeValueAsString(json)
 }

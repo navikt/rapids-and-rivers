@@ -157,6 +157,13 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @Test
+    fun `creates documentation event `() {
+        withRapid() { rapid ->
+            waitForEvent("documentation")
+        }
+    }
+
     private fun waitForEvent(event: String): JsonNode? {
         return await("wait until $event")
             .atMost(40, SECONDS)
@@ -168,7 +175,14 @@ internal class RapidApplicationComponentTest {
 
     private fun withRapid(builder: RapidApplication.Builder? = null, block: (RapidsConnection) -> Unit) {
         val rapidsConnection = (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
-            .build()
+            .build().also { rapidConnections ->
+                   rapidConnections.register(River(rapidConnections).apply {
+                       validate { it.requireAll("@behov", listOf("BehovNavn")) }
+                       validate { it.requireAll("aProperty", listOf("prop")) }
+                       validate { it.interestedIn("aProperty") }
+                   })
+                }
+
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {
             block(rapidsConnection)

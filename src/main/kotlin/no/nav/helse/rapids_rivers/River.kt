@@ -31,6 +31,12 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         }
     }
 
+    override fun onContracts(): List<JsonMessage.Contract> {
+        val placeholder = JsonMessage("{}", MessageProblems("{}"))
+        validations.forEach { runCatching { it(placeholder) } }
+        return placeholder.contracts()
+    }
+
     private fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
         listeners.forEach { it.onPacket(packet, context) }
     }

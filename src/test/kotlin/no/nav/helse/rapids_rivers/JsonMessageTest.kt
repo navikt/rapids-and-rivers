@@ -2,6 +2,8 @@ package no.nav.helse.rapids_rivers
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.*
+
+import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -20,6 +22,7 @@ internal class JsonMessageTest {
         assertEquals("bar", JsonMessage.newMessage(mapOf(
             "foo" to "bar"
         )).apply { requireKey("foo") }["foo"].asText())
+
     }
 
     @Test
@@ -627,6 +630,45 @@ internal class JsonMessageTest {
         assertThrows<DateTimeParseException> { TextNode.valueOf("").asLocalDateTime() }
         with("2020-01-01T00:00:00.000000") {
             assertEquals(LocalDateTime.parse(this), TextNode.valueOf(this).asLocalDateTime())
+        }
+    }
+
+
+    @Test
+    fun ` As contract ` () {
+
+        @Language("JSON")
+        val originalMessage = """
+            { 
+            
+            "demand" : ["demanded"], 
+            "demandedKey" : "key" 
+
+        }
+        """.trimIndent()
+
+        JsonMessage(originalMessage, MessageProblems(originalMessage)).also {
+            it.requireKey("require")
+            it.rejectKey("reject")
+            it.interestedIn("interested")
+            it.forbid("forbid")
+            it.requireValue("requireBooleanValue", true)
+            it.requireValue("requireStringValue", "value")
+            it.requireAny("requireAny", listOf("value"))
+            it.demandAll("demand", listOf("demanded"))
+            it.demandKey("demandedKey")
+        }.contracts().also { contract ->
+            assertFalse(contract.isEmpty()) {" Should have contract "}
+            println(contract)
+            assertEquals(contract.first { it.type == "requireKey" }.key, "require")
+            assertEquals(contract.first { it.type == "rejectKey" }.key, "reject")
+            assertEquals(contract.first { it.type == "interestedIn" }.key, "interested")
+            assertEquals(contract.first { it.type == "forbid" }.key, "forbid")
+            assertEquals(contract.first { it.type == "demandAll" }, JsonMessage.Contract("demandAll", "demand", listOf("demanded")))
+            assertEquals(contract.first { it.type == "demandKey" }.key, "demandedKey")
+            assertEquals(contract.first { it.key == "requireBooleanValue" }.type, "requireValue")
+            assertEquals(contract.first { it.key == "requireStringValue" }.type, "requireValue")
+            assertEquals(contract.first { it.type == "requireAny" }.key, "requireAny")
         }
     }
 
