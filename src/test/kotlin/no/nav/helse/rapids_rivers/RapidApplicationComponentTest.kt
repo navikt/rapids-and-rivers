@@ -26,6 +26,7 @@ import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URL
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -148,7 +149,7 @@ internal class RapidApplicationComponentTest {
             waitForEvent("application_ready")
 
             val pingId = UUID.randomUUID().toString()
-            rapid.publish("""{"@event_name":"ping","@id":"$pingId"}""")
+            rapid.publish("""{"@event_name":"ping","@id":"$pingId","ping_time":"${LocalDateTime.now()}"}""")
 
             val pong = requireNotNull(waitForEvent("pong")) { "did not receive pong before timeout" }
             assertEquals(pingId, pong["@id"].asText())
