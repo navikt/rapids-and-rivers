@@ -30,6 +30,7 @@ jobs:
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: --org=tbd-ty7 --fail-on=all
+          command: monitor
 
   release:
     name: Create Release
