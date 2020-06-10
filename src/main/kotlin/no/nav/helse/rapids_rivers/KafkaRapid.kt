@@ -23,6 +23,7 @@ class KafkaRapid(
 
     private val running = AtomicBoolean(Stopped)
     private val ready = AtomicBoolean(false)
+    private val producerClosed = AtomicBoolean(false)
 
     private val stringDeserializer = StringDeserializer()
     private val stringSerializer = StringSerializer()
@@ -47,10 +48,12 @@ class KafkaRapid(
     fun isReady() = isRunning() && ready.get()
 
     override fun publish(message: String) {
+        check(!producerClosed.get()) { "can't publish messages when producer is closed" }
         producer.send(ProducerRecord(rapidTopic, message))
     }
 
     override fun publish(key: String, message: String) {
+        check(!producerClosed.get()) { "can't publish messages when producer is closed" }
         producer.send(ProducerRecord(rapidTopic, key, message))
     }
 
@@ -127,6 +130,7 @@ class KafkaRapid(
         } else {
             log.info("stopped consuming messages after receiving stop signal")
         }
+        producerClosed.set(true)
         producer.close()
         consumer.unsubscribe()
         consumer.close()

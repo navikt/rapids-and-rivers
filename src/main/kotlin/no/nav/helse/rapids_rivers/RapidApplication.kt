@@ -9,7 +9,6 @@ import java.io.FileNotFoundException
 import java.net.InetAddress
 import java.time.LocalDateTime
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
@@ -60,7 +59,11 @@ class RapidApplication internal constructor(
     override fun onStartup(rapidsConnection: RapidsConnection) {
         applicationEvent("application_up")?.also {
             log.info("publishing application_up event for app_name=$appName, instance_id=$instanceId")
-            rapidsConnection.publish(it)
+            try {
+                rapidsConnection.publish(it)
+            } catch (err: Exception) {
+                log.warn("failed to publish application_up event: ${err.message}", err)
+            }
         }
         statusListeners.forEach { it.onStartup(this) }
     }
@@ -68,7 +71,11 @@ class RapidApplication internal constructor(
     override fun onReady(rapidsConnection: RapidsConnection) {
         applicationEvent("application_ready")?.also {
             log.info("publishing application_ready event for app_name=$appName, instance_id=$instanceId")
-            rapidsConnection.publish(it)
+            try {
+                rapidsConnection.publish(it)
+            } catch (err: Exception) {
+                log.warn("failed to publish application_ready event: ${err.message}", err)
+            }
         }
         statusListeners.forEach { it.onReady(this) }
     }
@@ -76,7 +83,11 @@ class RapidApplication internal constructor(
     override fun onNotReady(rapidsConnection: RapidsConnection) {
         applicationEvent("application_not_ready")?.also {
             log.info("publishing application_not_ready event for app_name=$appName, instance_id=$instanceId")
-            rapidsConnection.publish(it)
+            try {
+                rapidsConnection.publish(it)
+            } catch (err: Exception) {
+                log.warn("failed to publish application_not_ready event: ${err.message}", err)
+            }
         }
         statusListeners.forEach { it.onReady(this) }
     }
@@ -84,7 +95,11 @@ class RapidApplication internal constructor(
     override fun onShutdown(rapidsConnection: RapidsConnection) {
         applicationEvent("application_down")?.also {
             log.info("publishing application_down event for app_name=$appName, instance_id=$instanceId")
-            rapidsConnection.publish(it)
+            try {
+                rapidsConnection.publish(it)
+            } catch (err: Exception) {
+                log.warn("failed to publish application_down event: ${err.message}", err)
+            }
         }
         statusListeners.forEach { it.onShutdown(this) }
     }

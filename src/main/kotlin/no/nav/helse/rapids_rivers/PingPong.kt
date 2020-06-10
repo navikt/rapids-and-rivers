@@ -21,10 +21,10 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
     }
 
     override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
-        log.debug("responding to ping as app_name=$appName instance_id=$instanceId")
         val pingTime = packet["ping_time"].asLocalDateTime()
         if (pingTime < LocalDateTime.now().minusHours(1))
             return
+        log.debug("responding to ping as app_name=$appName instance_id=$instanceId")
 
         packet["@event_name"] = "pong"
         packet["pong_time"] = LocalDateTime.now()
