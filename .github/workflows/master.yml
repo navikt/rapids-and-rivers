@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Gradle vulnerability check
+        uses: snyk/actions/gradle-jdk12@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --org=tbd-ty7 --fail-on=all
       - uses: actions/setup-java@v1
         with:
           java-version: '12.x'
