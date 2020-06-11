@@ -57,51 +57,32 @@ class RapidApplication internal constructor(
     }
 
     override fun onStartup(rapidsConnection: RapidsConnection) {
-        applicationEvent("application_up")?.also {
-            log.info("publishing application_up event for app_name=$appName, instance_id=$instanceId")
-            try {
-                rapidsConnection.publish(it)
-            } catch (err: Exception) {
-                log.warn("failed to publish application_up event: ${err.message}", err)
-            }
-        }
+        publishApplicationEvent(rapidsConnection, "application_up")
         statusListeners.forEach { it.onStartup(this) }
     }
 
     override fun onReady(rapidsConnection: RapidsConnection) {
-        applicationEvent("application_ready")?.also {
-            log.info("publishing application_ready event for app_name=$appName, instance_id=$instanceId")
-            try {
-                rapidsConnection.publish(it)
-            } catch (err: Exception) {
-                log.warn("failed to publish application_ready event: ${err.message}", err)
-            }
-        }
+        publishApplicationEvent(rapidsConnection, "application_ready")
         statusListeners.forEach { it.onReady(this) }
     }
 
     override fun onNotReady(rapidsConnection: RapidsConnection) {
-        applicationEvent("application_not_ready")?.also {
-            log.info("publishing application_not_ready event for app_name=$appName, instance_id=$instanceId")
-            try {
-                rapidsConnection.publish(it)
-            } catch (err: Exception) {
-                log.warn("failed to publish application_not_ready event: ${err.message}", err)
-            }
-        }
+        publishApplicationEvent(rapidsConnection, "application_not_ready")
         statusListeners.forEach { it.onReady(this) }
     }
 
     override fun onShutdown(rapidsConnection: RapidsConnection) {
-        applicationEvent("application_down")?.also {
-            log.info("publishing application_down event for app_name=$appName, instance_id=$instanceId")
+        publishApplicationEvent(rapidsConnection, "application_down")
+        statusListeners.forEach { it.onShutdown(this) }
+    }
+
+    private fun publishApplicationEvent(rapidsConnection: RapidsConnection, event: String) {
+        applicationEvent(event)?.also {
+            log.info("publishing $event event for app_name=$appName, instance_id=$instanceId")
             try {
                 rapidsConnection.publish(it)
-            } catch (err: Exception) {
-                log.warn("failed to publish application_down event: ${err.message}", err)
-            }
+            } catch (err: Exception) { }
         }
-        statusListeners.forEach { it.onShutdown(this) }
     }
 
     private fun applicationEvent(event: String): String? {
