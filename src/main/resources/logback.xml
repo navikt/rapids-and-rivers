@@ -17,6 +17,8 @@
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
     </appender>
 
+    <logger name="no.nav.helse.rapids_rivers" level="DEBUG" />
+
     <logger name="tjenestekall" level="DEBUG" additivity="false">
         <appender-ref ref="secureLog" />
     </logger>
