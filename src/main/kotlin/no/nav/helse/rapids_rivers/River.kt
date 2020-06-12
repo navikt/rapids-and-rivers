@@ -19,7 +19,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         listeners.add(listener)
     }
 
-    override fun onMessage(message: String, context: RapidsConnection.MessageContext) {
+    override fun onMessage(key: String?, message: String, context: RapidsConnection.MessageContext) {
         val problems = MessageProblems(message)
         try {
             val packet = JsonMessage(message, problems)

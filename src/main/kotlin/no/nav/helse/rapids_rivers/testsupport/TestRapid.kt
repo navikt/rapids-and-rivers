@@ -23,7 +23,7 @@ class TestRapid : RapidsConnection() {
     }
 
     fun sendTestMessage(message: String) {
-        listeners.forEach { it.onMessage(message, context) }
+        listeners.forEach { it.onMessage(null, message, context) }
     }
 
     override fun publish(message: String) {

@@ -127,7 +127,7 @@ internal class RapidIntegrationTest {
     @Test
     fun `should stop on errors`() {
         rapid.register(object : RapidsConnection.MessageListener {
-            override fun onMessage(message: String, context: RapidsConnection.MessageContext) {
+            override fun onMessage(key: String? , message: String, context: RapidsConnection.MessageContext) {
                 throw RuntimeException()
             }
         })

@@ -9,14 +9,14 @@ internal class RiverTest {
 
     @Test
     internal fun `invalid json`() {
-        river.onMessage("invalid json", context)
+        river.onMessage(null, "invalid json", context)
         assertFalse(gotMessage)
         assertTrue(messageProblems.hasErrors())
     }
 
     @Test
     internal fun `no validations`() {
-        river.onMessage("{}", context)
+        river.onMessage(null, "{}", context)
         assertTrue(gotMessage)
         assertFalse(messageProblems.hasErrors())
     }
@@ -24,7 +24,7 @@ internal class RiverTest {
     @Test
     internal fun `failed validations`() {
         river.validate { it.requireKey("key") }
-        river.onMessage("{}", context)
+        river.onMessage(null, "{}", context)
         assertFalse(gotMessage)
         assertTrue(messageProblems.hasErrors())
     }
@@ -32,7 +32,7 @@ internal class RiverTest {
     @Test
     internal fun `passing validations`() {
         river.validate { it.requireValue("hello", "world") }
-        river.onMessage("{\"hello\": \"world\"}", context)
+        river.onMessage(null, "{\"hello\": \"world\"}", context)
         assertTrue(gotMessage)
         assertFalse(messageProblems.hasErrors())
     }

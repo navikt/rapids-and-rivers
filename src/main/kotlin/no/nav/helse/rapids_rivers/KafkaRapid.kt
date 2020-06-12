@@ -97,7 +97,7 @@ class KafkaRapid(
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
         val context = KafkaMessageContext(record, this)
-        listeners.forEach { it.onMessage(record.value(), context) }
+        listeners.forEach { it.onMessage(record.key(), record.value(), context) }
     }
 
     private fun consumeMessages() {

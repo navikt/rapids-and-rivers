@@ -32,6 +32,6 @@ abstract class RapidsConnection {
     }
 
     interface MessageListener {
-        fun onMessage(message: String, context: MessageContext)
+        fun onMessage(key: String?, message: String, context: MessageContext)
     }
 }

@@ -29,8 +29,8 @@ class RapidApplication internal constructor(
         }
     }
 
-    override fun onMessage(message: String, context: MessageContext) {
-        listeners.forEach { it.onMessage(message, context) }
+    override fun onMessage(key: String?, message: String, context: MessageContext) {
+        listeners.forEach { it.onMessage(key, message, context) }
     }
 
     override fun start() {

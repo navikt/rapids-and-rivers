@@ -37,7 +37,7 @@ class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
             }
         }
 
-        listeners.forEach { it.onMessage(message, context) }
+        listeners.forEach { it.onMessage(null, message, context) }
     }
 
     data class RapidMessage(val key: String?, val value: String)
