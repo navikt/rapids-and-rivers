@@ -22,7 +22,7 @@ class TestRapid : RapidsConnection() {
         messages.clear()
     }
 
-    fun sendTestMessage(message: String) {
+    fun sendTestMessage(message: String, context: MessageContext = this.context) {
         listeners.forEach { it.onMessage(message, context) }
     }
 
