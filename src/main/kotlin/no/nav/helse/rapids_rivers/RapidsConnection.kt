@@ -22,6 +22,7 @@ abstract class RapidsConnection {
     interface MessageContext {
         fun send(message: String)
         fun send(key: String, message: String)
+        fun getKey(): String? = null
     }
 
     interface StatusListener {
