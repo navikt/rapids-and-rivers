@@ -155,7 +155,7 @@ class KafkaRapid(
             rapidsConnection.publish(key, message)
         }
 
-        override fun getKey(): String? = record.key()
+        override fun key(): String? = record.key()
     }
 
     companion object {
