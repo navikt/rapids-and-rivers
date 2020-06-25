@@ -155,7 +155,9 @@ class RapidApplication internal constructor(
                         truststore = env["NAV_TRUSTSTORE_PATH"],
                         truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
                         autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                        autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() }
+                        autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
+                        maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
+                        maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
                     ),
                     httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
                 )

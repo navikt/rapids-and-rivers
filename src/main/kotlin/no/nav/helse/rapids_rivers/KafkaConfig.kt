@@ -21,6 +21,7 @@ class KafkaConfig(
     private val truststorePassword: String? = null,
     private val autoOffsetResetConfig: String? = null,
     private val autoCommit: Boolean? = false,
+    maxIntervalMs: Int? = null,
     maxRecords: Int? = null
 ) {
     private companion object {
@@ -31,7 +32,7 @@ class KafkaConfig(
     // assuming a "worst case" scenario where it takes 2 seconds to process each message;
     // then set MAX_POLL_INTERVAL_MS_CONFIG 1 minute above this "worst case" limit so
     // the broker doesn't think we have died (and revokes partitions)
-    private val maxPollIntervalMs = Duration.ofSeconds(60 + maxPollRecords * 2.toLong()).toMillis()
+    private val maxPollIntervalMs = maxIntervalMs ?: Duration.ofSeconds(60 + maxPollRecords * 2.toLong()).toMillis()
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
