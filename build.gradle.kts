@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.4.0"
 val kafkaVersion = "2.4.0"
-val micrometerRegistryPrometheusVersion = "1.3.5"
-val junitJupiterVersion = "5.6.0"
-val jacksonVersion = "2.10.3"
+val micrometerRegistryPrometheusVersion = "1.5.2"
+val junitJupiterVersion = "5.6.2"
+val jacksonVersion = "2.10.4"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -20,7 +20,9 @@ dependencies {
     api(kotlin("stdlib-jdk8"))
 
     api("ch.qos.logback:logback-classic:1.2.3")
-    api("net.logstash.logback:logstash-logback-encoder:5.2")
+    api("net.logstash.logback:logstash-logback-encoder:6.4") {
+        exclude("com.fasterxml.jackson.core")
+    }
     api("io.ktor:ktor-server-netty:$ktorVersion")
 
     api("org.apache.kafka:kafka-clients:$kafkaVersion")
@@ -36,7 +38,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
     testImplementation("no.nav:kafka-embedded-env:$kafkaVersion")
-    testImplementation("org.awaitility:awaitility:4.0.1")
+    testImplementation("org.awaitility:awaitility:4.0.3")
 }
 
 java {

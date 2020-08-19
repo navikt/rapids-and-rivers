@@ -30,6 +30,7 @@ import org.slf4j.Logger
 class KtorBuilder {
 
     private val builder = ApplicationEngineEnvironmentBuilder()
+    private var collectorRegistry = CollectorRegistry.defaultRegistry
 
     fun port(port: Int) = apply {
         builder.connector {
@@ -46,6 +47,34 @@ class KtorBuilder {
     }
 
     fun build(): ApplicationEngine = embeddedServer(Netty, applicationEngineEnvironment {
+        module {
+            install(MicrometerMetrics) {
+                registry = PrometheusMeterRegistry(
+                    PrometheusConfig.DEFAULT,
+                    collectorRegistry,
+                    Clock.SYSTEM
+                )
+                meterBinders = listOf(
+                    ClassLoaderMetrics(),
+                    JvmMemoryMetrics(),
+                    JvmGcMetrics(),
+                    ProcessorMetrics(),
+                    JvmThreadMetrics(),
+                    LogbackMetrics(),
+                    KafkaConsumerMetrics()
+                )
+            }
+
+            routing {
+                get("/metrics") {
+                    val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
+                    call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
+                        TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
+                    }
+                }
+            }
+        }
+
         this.connectors.addAll(builder.connectors)
         this.log = builder.log
         this.modules.addAll(builder.modules)
@@ -73,33 +102,7 @@ class KtorBuilder {
         }
     }
 
-    fun metrics(collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry) = apply {
-        builder.module {
-            install(MicrometerMetrics) {
-                registry = PrometheusMeterRegistry(
-                    PrometheusConfig.DEFAULT,
-                    collectorRegistry,
-                    Clock.SYSTEM
-                )
-                meterBinders = listOf(
-                    ClassLoaderMetrics(),
-                    JvmMemoryMetrics(),
-                    JvmGcMetrics(),
-                    ProcessorMetrics(),
-                    JvmThreadMetrics(),
-                    LogbackMetrics(),
-                    KafkaConsumerMetrics()
-                )
-            }
-
-            routing {
-                get("/metrics") {
-                    val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
-                    call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
-                        TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
-                    }
-                }
-            }
-        }
+    fun withCollectorRegistry(registry: CollectorRegistry) = apply {
+        this.collectorRegistry = registry
     }
 }

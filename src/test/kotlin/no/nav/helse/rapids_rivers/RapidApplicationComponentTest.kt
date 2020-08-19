@@ -9,6 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.routing
+import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
 import no.nav.common.KafkaEnvironment
 import org.apache.kafka.clients.CommonClientConfigs
@@ -169,6 +170,7 @@ internal class RapidApplicationComponentTest {
 
     private fun withRapid(builder: RapidApplication.Builder? = null, block: (RapidsConnection) -> Unit) {
         val rapidsConnection = (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
+            .withCollectorRegistry(CollectorRegistry())
             .build()
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {
