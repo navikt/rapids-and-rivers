@@ -176,10 +176,10 @@ internal class RapidIntegrationTest {
         rapid.startNonBlocking()
 
         await("wait until the failed message has been read")
-                .atMost(10, SECONDS)
+                .atMost(20, SECONDS)
                 .until { readFailedMessage }
         await("wait until the rapid stops")
-                .atMost(10, SECONDS)
+                .atMost(20, SECONDS)
                 .until { !rapid.isRunning() }
 
         val actualOffset = embeddedKafkaEnvironment.adminClient
