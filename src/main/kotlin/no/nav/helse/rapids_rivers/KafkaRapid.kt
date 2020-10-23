@@ -89,10 +89,22 @@ class KafkaRapid(
         seekToBeginning = false
     }
 
-    private fun onRecords(records: ConsumerRecords<String, String>) {
+    private fun onRecords(partitionPositions: Map<TopicPartition, Long>, records: ConsumerRecords<String, String>) {
         if (records.isEmpty) return // poll returns an empty collection in case of rebalancing
-        records.onEach(::onRecord)
-        consumer.commitSync()
+        val currentPositions = partitionPositions.toMutableMap()
+        try {
+            records.onEach { record ->
+                onRecord(record)
+                currentPositions[TopicPartition(record.topic(), record.partition())] = record.offset() + 1
+            }
+        } catch (err: Exception) {
+            log.info("due to an error during processing, positions are reset to each next message (after each record that was processed OK):" +
+                    currentPositions.map { "\tpartition=${it.key}, offset=${it.value}" }.joinToString(separator = "\n", prefix = "\n", postfix = "\n"), err)
+            currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
+            throw err
+        } finally {
+            consumer.commitSync()
+        }
     }
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
@@ -101,19 +113,26 @@ class KafkaRapid(
     }
 
     private fun consumeMessages() {
+        var lastException: Exception? = null
         try {
             statusListeners.forEach { it.onStartup(this) }
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                consumer.poll(Duration.ofSeconds(1)).also(::onRecords)
+                val positionsBeforePoll = consumer.assignment()
+                        .groupBy { it }
+                        .mapValues { consumer.position(it.key) }
+                consumer.poll(Duration.ofSeconds(1)).also { onRecords(positionsBeforePoll, it) }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop
             if (running.get()) throw err
+        } catch (err: Exception) {
+            lastException = err
+            throw err
         } finally {
             statusListeners.forEach { it.onShutdown(this) }
-            closeResources()
+            closeResources(lastException)
         }
     }
 
@@ -124,9 +143,9 @@ class KafkaRapid(
         consumer.commitSync(mapOf(this to OffsetAndMetadata(offset)))
     }
 
-    private fun closeResources() {
+    private fun closeResources(lastException: Exception?) {
         if (Started == running.getAndSet(Stopped)) {
-            log.info("stopped consuming messages due to an error")
+            log.warn("stopped consuming messages due to an error", lastException)
         } else {
             log.info("stopped consuming messages after receiving stop signal")
         }

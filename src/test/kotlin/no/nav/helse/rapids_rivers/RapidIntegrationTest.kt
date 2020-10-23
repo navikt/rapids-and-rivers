@@ -13,6 +13,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
@@ -138,6 +139,76 @@ internal class RapidIntegrationTest {
                 kafkaProducer.send(ProducerRecord(testTopic, UUID.randomUUID().toString()))
                 !rapid.isRunning()
             }
+    }
+
+    @Test
+    fun `in case of exception, the offset committed is the erroneous record`() {
+        ensureRapidIsActive()
+
+        // stop rapid so we can queue up records
+        rapid.stop()
+        runBlocking { rapidJob.cancelAndJoin() }
+
+        val offsets = (0..100).map {
+            val key = UUID.randomUUID().toString()
+            kafkaProducer.send(ProducerRecord(testTopic, key, "{\"test_message_index\": $it}"))
+                    .get()
+                    .offset()
+        }
+
+        val failOnMessage = 50
+        val expectedOffset = offsets[failOnMessage]
+        var readFailedMessage = false
+
+        rapid = createTestRapid()
+        River(rapid).apply { validate { it.requireKey("test_message_index") } }
+                .register(object : River.PacketListener {
+                    override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                        val index = packet["test_message_index"].asInt()
+                        println("Read test_message_index=$index")
+                        if (index == failOnMessage) {
+                            readFailedMessage = true
+                            throw RuntimeException("an unexpected error happened")
+                        }
+                    }
+                })
+
+        rapid.startNonBlocking()
+
+        await("wait until the failed message has been read")
+                .atMost(10, SECONDS)
+                .until { readFailedMessage }
+        await("wait until the rapid stops")
+                .atMost(10, SECONDS)
+                .until { !rapid.isRunning() }
+
+        val actualOffset = embeddedKafkaEnvironment.adminClient
+                ?.listConsumerGroupOffsets(consumerId)
+                ?.partitionsToOffsetAndMetadata()
+                ?.get()
+                ?.getValue(TopicPartition(testTopic, 0))
+                ?.offset()
+                ?: fail { "was not able to fetch committed offset for consumer $consumerId" }
+
+        assertEquals(expectedOffset, actualOffset)
+    }
+
+    private fun ensureRapidIsActive() {
+        val readMessages = mutableListOf<JsonMessage>()
+        River(rapid).apply {
+            register(object : River.PacketListener {
+                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                    readMessages.add(packet)
+                }
+            })
+        }
+
+        await("wait until the rapid has read the test message")
+                .atMost(5, SECONDS)
+                .until {
+                    rapid.publish("{\"foo\": \"bar\"}")
+                    readMessages.size >= 1
+                }
     }
 
     @Test
