@@ -17,8 +17,6 @@ plugins {
 }
 
 dependencies {
-    api(kotlin("stdlib-jdk8"))
-
     api("ch.qos.logback:logback-classic:1.2.3")
     api("net.logstash.logback:logstash-logback-encoder:6.4") {
         exclude("com.fasterxml.jackson.core")
