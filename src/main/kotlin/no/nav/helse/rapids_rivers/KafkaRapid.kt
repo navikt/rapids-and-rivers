@@ -156,9 +156,17 @@ class KafkaRapid(
             log.info("stopped consuming messages after receiving stop signal")
         }
         producerClosed.set(true)
-        producer.close()
-        consumer.unsubscribe()
-        consumer.close()
+        tryAndLog(producer::close)
+        tryAndLog(consumer::unsubscribe)
+        tryAndLog(consumer::close)
+    }
+
+    private fun tryAndLog(block: () -> Unit) {
+        try {
+            block()
+        } catch (err: Exception) {
+            log.error(err.message, err)
+        }
     }
 
     private class KafkaMessageContext(
