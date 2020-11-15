@@ -131,7 +131,13 @@ class KafkaRapid(
             lastException = err
             throw err
         } finally {
-            statusListeners.forEach { it.onShutdown(this) }
+            statusListeners.forEach {
+                try {
+                    it.onShutdown(this)
+                } catch (err: Exception) {
+                    log.error("A shutdown callback threw an exception: ${err.message}", err)
+                }
+            }
             closeResources(lastException)
         }
     }

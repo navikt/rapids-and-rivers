@@ -73,7 +73,13 @@ class RapidApplication internal constructor(
 
     override fun onShutdown(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_down")
-        statusListeners.forEach { it.onShutdown(this) }
+        statusListeners.forEach {
+            try {
+                it.onShutdown(this)
+            } catch (err: Exception) {
+                log.error("A shutdown callback threw an exception: ${err.message}", err)
+            }
+        }
     }
 
     private fun publishApplicationEvent(rapidsConnection: RapidsConnection, event: String) {
