@@ -43,7 +43,7 @@ jobs:
       - name: Set release tag
         run: |
           export TAG_NAME="1.$(echo $GITHUB_SHA | cut -c1-7)"
-          echo "::set-env name=RELEASE_TAG::$TAG_NAME"
+          echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
       - name: Set changelog
         # (Escape newlines see https://github.com/actions/create-release/issues/25)
         run: |
@@ -51,7 +51,7 @@ jobs:
           text="${text//$'%'/%25}"
           text="${text//$'\n'/%0A}"
           text="${text//$'\r'/%0D}"
-          echo "::set-env name=CHANGELOG::$text"
+          echo "CHANGELOG=$text" >> $GITHUB_ENV
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
