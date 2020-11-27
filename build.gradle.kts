@@ -1,7 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.4.0"
+val ktorVersion = "1.4.2"
 val kafkaVersion = "2.4.0"
 val micrometerRegistryPrometheusVersion = "1.5.2"
 val junitJupiterVersion = "5.6.2"
