@@ -136,6 +136,19 @@ internal class RapidApplicationComponentTest {
     }
 
     @Test
+    fun `metrics endpoints`() {
+        withRapid { rapid ->
+            await("wait until metrics are available")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/metrics") }
+
+            await("ensure metrics are still available")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/metrics") }
+        }
+    }
+
+    @Test
     fun `creates events for up and down`() {
         withRapid() { rapid ->
             waitForEvent("application_up")
