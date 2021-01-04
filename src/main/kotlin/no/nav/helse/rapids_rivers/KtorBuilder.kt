@@ -12,7 +12,6 @@ import io.ktor.routing.get
 import io.ktor.routing.routing
 import io.ktor.server.engine.*
 import io.ktor.server.netty.Netty
-import io.ktor.util.KtorExperimentalAPI
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
@@ -26,7 +25,6 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
 import org.slf4j.Logger
-import java.io.CharArrayWriter
 
 class KtorBuilder {
 
@@ -70,14 +68,9 @@ class KtorBuilder {
                 get("/metrics") {
                     val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
 
-                    val formatted = CharArrayWriter(1024)
-                        .also { TextFormat.write004(it, collectorRegistry.filteredMetricFamilySamples(names)) }
-                        .use { it.toString() }
-
-                    call.respondText(
-                        contentType = ContentType.parse(TextFormat.CONTENT_TYPE_004),
-                        text = formatted
-                    )
+                    call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
+                        TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
+                    }
                 }
             }
         }
