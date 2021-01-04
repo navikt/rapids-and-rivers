@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.5.0"
 val kafkaVersion = "2.4.0"
-val micrometerRegistryPrometheusVersion = "1.6.1"
+val micrometerRegistryPrometheusVersion = "1.6.2"
 val junitJupiterVersion = "5.7.0"
 val jacksonVersion = "2.12.0"
 
@@ -11,14 +11,14 @@ group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.4.20"
+    kotlin("jvm") version "1.4.21"
     id("java")
     id("maven-publish")
 }
 
 dependencies {
     api("ch.qos.logback:logback-classic:1.2.3")
-    api("net.logstash.logback:logstash-logback-encoder:6.5") {
+    api("net.logstash.logback:logstash-logback-encoder:6.6") {
         exclude("com.fasterxml.jackson.core")
     }
     api("io.ktor:ktor-server-netty:$ktorVersion")
