@@ -87,7 +87,8 @@ class RapidApplication internal constructor(
             log.info("publishing $event event for app_name=$appName, instance_id=$instanceId")
             try {
                 rapidsConnection.publish(it)
-            } catch (err: Exception) { }
+            } catch (err: Exception) {
+            }
         }
     }
 
@@ -104,7 +105,8 @@ class RapidApplication internal constructor(
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
-        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
+        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }) =
+            Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
     }
 
     class Builder(private val config: RapidApplicationConfig) {
@@ -129,7 +131,7 @@ class RapidApplication internal constructor(
             ktor.module(module)
         }
 
-        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }): RapidsConnection {
+        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)
             return RapidApplication(app, rapid, config.appName, config.instanceId)
@@ -151,11 +153,13 @@ class RapidApplication internal constructor(
         companion object {
             fun fromEnv(env: Map<String, String>) = generateInstanceId(env).let { instanceId ->
                 RapidApplicationConfig(
-                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured").let { null },
+                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured")
+                        .let { null },
                     instanceId = instanceId,
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
                     kafkaConfig = KafkaConfig(
+                        isKafkaCloud = env["IS_KAFKA_CLOUD"]?.let { "true" == it.toLowerCase() },
                         bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
                         consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
                         clientId = instanceId,
@@ -163,6 +167,10 @@ class RapidApplication internal constructor(
                         password = "/var/run/secrets/nais.io/service_user/password".readFile(),
                         truststore = env["NAV_TRUSTSTORE_PATH"],
                         truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
+                        sslTruststoreLocationEnvKey = env["KAFKA_TRUSTSTORE_PATH"],
+                        sslTruststorePasswordEnvKey = env["KAFKA_TRUSTSTORE_PASSWORD"],
+                        sslKeystoreLocationEnvKey = env["KAFKA_KEYSTORE_PATH"],
+                        sslKeystorePasswordEnvKey = env["KAFKA_KEYSTORE_PASSWORD"],
                         autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
                         autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
                         maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
@@ -178,9 +186,14 @@ class RapidApplication internal constructor(
             }
 
             private fun generateAppName(env: Map<String, String>): String? {
-                val appName = env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set").let { null }
-                val namespace = env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set").let { null }
-                val cluster = env["NAIS_CLUSTER_NAME"] ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
+                val appName =
+                    env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set")
+                        .let { null }
+                val namespace =
+                    env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set")
+                        .let { null }
+                val cluster = env["NAIS_CLUSTER_NAME"]
+                    ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
                 return "$appName-$cluster-$namespace"
             }
         }
