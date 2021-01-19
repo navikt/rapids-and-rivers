@@ -87,8 +87,7 @@ class RapidApplication internal constructor(
             log.info("publishing $event event for app_name=$appName, instance_id=$instanceId")
             try {
                 rapidsConnection.publish(it)
-            } catch (err: Exception) {
-            }
+            } catch (err: Exception) { }
         }
     }
 
@@ -105,8 +104,7 @@ class RapidApplication internal constructor(
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
-        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }) =
-            Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
+        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
     }
 
     class Builder(private val config: RapidApplicationConfig) {
@@ -186,14 +184,9 @@ class RapidApplication internal constructor(
             }
 
             private fun generateAppName(env: Map<String, String>): String? {
-                val appName =
-                    env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set")
-                        .let { null }
-                val namespace =
-                    env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set")
-                        .let { null }
-                val cluster = env["NAIS_CLUSTER_NAME"]
-                    ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
+                val appName = env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set").let { null }
+                val namespace = env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set").let { null }
+                val cluster = env["NAIS_CLUSTER_NAME"] ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
                 return "$appName-$cluster-$namespace"
             }
         }
