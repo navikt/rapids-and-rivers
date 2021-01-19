@@ -23,10 +23,10 @@ class KafkaConfig(
     private val truststorePassword: String? = null,
     private val javaKeystore: String? = "jks",
     private val pkcs12: String? = "PKCS12",
-    private val sslKeystoreLocationEnvKey: String? = null,
-    private val sslKeystorePasswordEnvKey: String? = null,
-    private val sslTruststoreLocationEnvKey: String? = null,
-    private val sslTruststorePasswordEnvKey: String? = null,
+    private val sslKeystoreLocation: String? = null,
+    private val sslKeystorePassword: String? = null,
+    private val sslTruststoreLocation: String? = null,
+    private val sslTruststorePassword: String? = null,
     private val autoOffsetResetConfig: String? = null,
     private val autoCommit: Boolean? = false,
     maxIntervalMs: Int? = null,
@@ -90,10 +90,10 @@ class KafkaConfig(
             put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "")
             put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, javaKeystore)
             put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, pkcs12)
-            put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslTruststoreLocationEnvKey)
-            put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, sslTruststorePasswordEnvKey)
-            put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslKeystoreLocationEnvKey)
-            put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, sslKeystorePasswordEnvKey)
+            put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslTruststoreLocation)
+            put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, sslTruststorePassword)
+            put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslKeystoreLocation)
+            put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, sslKeystorePassword)
         }
     }
 }
