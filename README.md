@@ -2,7 +2,7 @@
 
 # Rapids and rivers
 
-Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids and rivers til [@fredgeorge](https://github.com/fredgeorge/).
+Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids and rivers til [@fredgeorge](https://github.com/fredgeorge/). For mer info kan man se denne videoen https://vimeo.com/79866979
 
 ## Konsepter
 
