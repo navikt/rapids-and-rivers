@@ -157,7 +157,7 @@ class RapidApplication internal constructor(
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
                     kafkaConfig = KafkaConfig(
-                        isKafkaCloud = env["IS_KAFKA_CLOUD"]?.let { "true" == it.toLowerCase() },
+                        isKafkaCloud = !env["KAFKA_TRUSTSTORE_PATH"].isNullOrBlank(),
                         bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
                         consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
                         clientId = instanceId,

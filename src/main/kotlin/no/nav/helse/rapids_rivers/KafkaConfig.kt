@@ -13,7 +13,7 @@ import java.util.*
 
 // Understands how to configure kafka from environment variables
 class KafkaConfig(
-    private val isKafkaCloud: Boolean? = false,
+    private val isKafkaCloud: Boolean = false,
     private val bootstrapServers: String,
     private val consumerGroupId: String,
     private val clientId: String? = null,
@@ -64,7 +64,7 @@ class KafkaConfig(
 
     private fun kafkaBaseConfig() = Properties().apply {
 
-        if(isKafkaCloud != true){
+        if(!isKafkaCloud){
             put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
