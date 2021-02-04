@@ -71,7 +71,7 @@ class KafkaConfig(
                     "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
                 )
             }
-            if (truststore != null) {
+            if (!truststore.isNullOrBlank()) {
                 try {
                     put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL")
                     put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, File(truststore).absolutePath)
