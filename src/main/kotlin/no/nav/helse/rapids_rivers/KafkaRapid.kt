@@ -89,9 +89,12 @@ class KafkaRapid(
         seekToBeginning = false
     }
 
-    private fun onRecords(partitionPositions: Map<TopicPartition, Long>, records: ConsumerRecords<String, String>) {
+    private fun onRecords(records: ConsumerRecords<String, String>) {
         if (records.isEmpty) return // poll returns an empty collection in case of rebalancing
-        val currentPositions = partitionPositions.toMutableMap()
+        val currentPositions = records
+            .groupBy { TopicPartition(it.topic(), it.partition()) }
+            .mapValues { it.value.minOf { it.offset() } }
+            .toMutableMap()
         try {
             records.onEach { record ->
                 onRecord(record)
@@ -119,10 +122,7 @@ class KafkaRapid(
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                val positionsBeforePoll = consumer.assignment()
-                        .groupBy { it }
-                        .mapValues { consumer.position(it.key) }
-                consumer.poll(Duration.ofSeconds(1)).also { onRecords(positionsBeforePoll, it) }
+                consumer.poll(Duration.ofSeconds(1)).also { onRecords(it) }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop
