@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Duration
@@ -19,6 +20,10 @@ class KafkaConfig(
     private val password: String? = null,
     private val truststore: String? = null,
     private val truststorePassword: String? = null,
+    private val javaKeystore: String? = "jks",
+    private val pkcs12: String? = "PKCS12",
+    private val keystoreLocation: String? = null,
+    private val keystorePassword: String? = null,
     private val autoOffsetResetConfig: String? = null,
     private val autoCommit: Boolean? = false,
     maxIntervalMs: Int? = null,
@@ -55,26 +60,37 @@ class KafkaConfig(
     }
 
     private fun kafkaBaseConfig() = Properties().apply {
-        put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
-        put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-        put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
 
-        if (username != null) {
-            put(
-                SaslConfigs.SASL_JAAS_CONFIG,
-                "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
-            )
-        }
-
-        if (truststore != null) {
-            try {
-                put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL")
-                put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, File(truststore).absolutePath)
-                put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword)
-                log.info("Configured '${SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG}' location ")
-            } catch (ex: Exception) {
-                log.error("Failed to set '${SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG}' location", ex)
+        if(keystoreLocation.isNullOrBlank() || keystorePassword.isNullOrBlank()){
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
+            if (username != null) {
+                put(
+                    SaslConfigs.SASL_JAAS_CONFIG,
+                    "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";"
+                )
             }
+            if (truststore != null) {
+                try {
+                    put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL")
+                    put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, File(truststore).absolutePath)
+                    put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword)
+                    log.info("Configured '${SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG}' location ")
+                } catch (ex: Exception) {
+                    log.error("Failed to set '${SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG}' location", ex)
+                }
+            }
+        } else {
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SSL.name)
+            put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "")
+            put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, javaKeystore)
+            put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, pkcs12)
+            put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, truststore)
+            put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, truststorePassword)
+            put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keystoreLocation)
+            put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keystorePassword)
         }
     }
 }

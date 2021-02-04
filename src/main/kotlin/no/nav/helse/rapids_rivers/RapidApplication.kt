@@ -129,7 +129,7 @@ class RapidApplication internal constructor(
             ktor.module(module)
         }
 
-        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }): RapidsConnection {
+        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)
             return RapidApplication(app, rapid, config.appName, config.instanceId)
@@ -151,7 +151,8 @@ class RapidApplication internal constructor(
         companion object {
             fun fromEnv(env: Map<String, String>) = generateInstanceId(env).let { instanceId ->
                 RapidApplicationConfig(
-                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured").let { null },
+                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured")
+                        .let { null },
                     instanceId = instanceId,
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
@@ -163,6 +164,8 @@ class RapidApplication internal constructor(
                         password = "/var/run/secrets/nais.io/service_user/password".readFile(),
                         truststore = env["NAV_TRUSTSTORE_PATH"],
                         truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
+                        keystoreLocation = env["KAFKA_KEYSTORE_PATH"],
+                        keystorePassword = env["KAFKA_KEYSTORE_PASSWORD"],
                         autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
                         autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
                         maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
