@@ -156,24 +156,53 @@ class RapidApplication internal constructor(
                     instanceId = instanceId,
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
-                    kafkaConfig = KafkaConfig(
-                        bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
-                        consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
-                        clientId = instanceId,
-                        username = "/var/run/secrets/nais.io/service_user/username".readFile(),
-                        password = "/var/run/secrets/nais.io/service_user/password".readFile(),
-                        truststore = env["NAV_TRUSTSTORE_PATH"],
-                        truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
-                        keystoreLocation = env["KAFKA_KEYSTORE_PATH"],
-                        keystorePassword = env["KAFKA_KEYSTORE_PASSWORD"],
-                        autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                        autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
-                        maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
-                        maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
-                    ),
-                    httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
+                    kafkaConfig = kafkaConfig(env, instanceId)
                 )
             }
+
+            private fun kafkaConfig(env: Map<String, String>, instanceId: String): KafkaConfig {
+                val preferOnPrem = env["KAFKA_PREFER_ON_PREM"]?.let { it.toLowerCase() == "true"} ?: false
+                if (preferOnPrem || !gcpConfigAvailable(env)) return onPremConfig(env, instanceId)
+                return gcpConfig(env, instanceId)
+            }
+
+            private fun gcpConfigAvailable(env: Map<String, String>) =
+                env.containsKey("KAFKA_BROKERS") && env.containsKey("KAFKA_CREDSTORE_PASSWORD")
+
+            private fun gcpConfig(env: Map<String, String>, instanceId: String) =
+                KafkaConfig(
+                    bootstrapServers = env.getValue("KAFKA_BROKERS"),
+                    consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
+                    clientId = instanceId,
+                    username = null,
+                    password = null,
+                    truststore = env["KAFKA_TRUSTSTORE_PATH"],
+                    truststorePassword = env.getValue("KAFKA_CREDSTORE_PASSWORD"),
+                    keystoreLocation = env.getValue("KAFKA_KEYSTORE_PATH"),
+                    keystorePassword = env.getValue("KAFKA_CREDSTORE_PASSWORD"),
+                    autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
+                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
+                    maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
+                    maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
+                )
+
+
+            private fun onPremConfig(env: Map<String, String>, instanceId: String) =
+                KafkaConfig(
+                    bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
+                    consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
+                    clientId = instanceId,
+                    username = "/var/run/secrets/nais.io/service_user/username".readFile(),
+                    password = "/var/run/secrets/nais.io/service_user/password".readFile(),
+                    truststore = env["NAV_TRUSTSTORE_PATH"],
+                    truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
+                    keystoreLocation = null,
+                    keystorePassword = null,
+                    autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
+                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
+                    maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
+                    maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
+                )
 
             private fun generateInstanceId(env: Map<String, String>): String {
                 if (env.containsKey("NAIS_APP_NAME")) return InetAddress.getLocalHost().hostName
