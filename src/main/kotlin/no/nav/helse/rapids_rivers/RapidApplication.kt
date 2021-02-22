@@ -156,7 +156,8 @@ class RapidApplication internal constructor(
                     instanceId = instanceId,
                     rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
                     extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
-                    kafkaConfig = kafkaConfig(env, instanceId)
+                    kafkaConfig = kafkaConfig(env, instanceId),
+                    httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
                 )
             }
 
