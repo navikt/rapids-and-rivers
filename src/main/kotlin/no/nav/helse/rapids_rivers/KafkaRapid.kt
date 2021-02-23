@@ -173,12 +173,12 @@ class KafkaRapid(
         private val record: ConsumerRecord<String, String>,
         private val rapidsConnection: RapidsConnection
     ) : MessageContext {
-        override fun send(message: String) {
+        override fun publish(message: String) {
             if (record.key() == null) return rapidsConnection.publish(message)
-            send(record.key(), message)
+            publish(record.key(), message)
         }
 
-        override fun send(key: String, message: String) {
+        override fun publish(key: String, message: String) {
             rapidsConnection.publish(key, message)
         }
     }

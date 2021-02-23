@@ -30,12 +30,12 @@ internal class InMemoryRapidTest {
             }.register(this)
         }
 
-        override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
-            packet.set("ut", "ut")
-            context.send(packet.toJson())
+        override fun onPacket(packet: JsonMessage, context: MessageContext) {
+            packet["ut"] = "ut"
+            context.publish(packet.toJson())
         }
 
-        override fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {}
+        override fun onError(problems: MessageProblems, context: MessageContext) {}
     }
 
 }

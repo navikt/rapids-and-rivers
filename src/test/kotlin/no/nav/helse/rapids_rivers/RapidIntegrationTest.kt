@@ -128,7 +128,7 @@ internal class RapidIntegrationTest {
     @Test
     fun `should stop on errors`() {
         rapid.register(object : RapidsConnection.MessageListener {
-            override fun onMessage(message: String, context: RapidsConnection.MessageContext) {
+            override fun onMessage(message: String, context: MessageContext) {
                 throw RuntimeException()
             }
         })
@@ -163,7 +163,7 @@ internal class RapidIntegrationTest {
         rapid = createTestRapid()
         River(rapid).apply { validate { it.requireKey("test_message_index") } }
                 .register(object : River.PacketListener {
-                    override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                    override fun onPacket(packet: JsonMessage, context: MessageContext) {
                         val index = packet["test_message_index"].asInt()
                         println("Read test_message_index=$index")
                         if (index == failOnMessage) {
@@ -197,7 +197,7 @@ internal class RapidIntegrationTest {
         val readMessages = mutableListOf<JsonMessage>()
         River(rapid).apply {
             register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                override fun onPacket(packet: JsonMessage, context: MessageContext) {
                     readMessages.add(packet)
                 }
             })
@@ -226,7 +226,7 @@ internal class RapidIntegrationTest {
         val readMessages = mutableListOf<JsonMessage>()
         River(rapid).apply {
             register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                override fun onPacket(packet: JsonMessage, context: MessageContext) {
                     readMessages.add(packet)
                 }
             })
@@ -249,7 +249,7 @@ internal class RapidIntegrationTest {
         rapid = createTestRapid()
         River(rapid).apply {
             register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                override fun onPacket(packet: JsonMessage, context: MessageContext) {
                     readMessages.add(packet)
                 }
             })
@@ -291,12 +291,12 @@ internal class RapidIntegrationTest {
             validate { it.requireValue("@event", eventName) }
             validate { it.forbid("service_id") }
             register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                override fun onPacket(packet: JsonMessage, context: MessageContext) {
                     packet["service_id"] = serviceId
-                    context.send(packet.toJson())
+                    context.publish(packet.toJson())
                 }
 
-                override fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {}
+                override fun onError(problems: MessageProblems, context: MessageContext) {}
             })
         }
     }

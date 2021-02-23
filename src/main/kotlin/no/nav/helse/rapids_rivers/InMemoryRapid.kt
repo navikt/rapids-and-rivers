@@ -28,12 +28,12 @@ class InMemoryRapid(private val ktor: ApplicationEngine) : RapidsConnection() {
 
     fun sendToListeners(message: String) {
         val context = object: MessageContext {
-            override fun send(message: String) {
-                publish(message)
+            override fun publish(message: String) {
+                this@InMemoryRapid.publish(message)
             }
 
-            override fun send(key: String, message: String) {
-                publish(key, message)
+            override fun publish(key: String, message: String) {
+                this@InMemoryRapid.publish(key, message)
             }
         }
 

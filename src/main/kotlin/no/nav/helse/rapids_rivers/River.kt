@@ -1,6 +1,8 @@
 package no.nav.helse.rapids_rivers
 
-typealias Validation = (JsonMessage) -> Unit
+fun interface Validation {
+    fun validate(message: JsonMessage)
+}
 
 class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListener {
 
@@ -19,11 +21,11 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         listeners.add(listener)
     }
 
-    override fun onMessage(message: String, context: RapidsConnection.MessageContext) {
+    override fun onMessage(message: String, context: MessageContext) {
         val problems = MessageProblems(message)
         try {
             val packet = JsonMessage(message, problems)
-            validations.forEach { it(packet) }
+            validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) return onError(problems, context)
             onPacket(packet, context)
         } catch (err: MessageProblems.MessageException) {
@@ -31,21 +33,21 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         }
     }
 
-    private fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+    private fun onPacket(packet: JsonMessage, context: MessageContext) {
         listeners.forEach { it.onPacket(packet, context) }
     }
 
-    private fun onSevere(error: MessageProblems.MessageException, context: RapidsConnection.MessageContext) {
+    private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
         listeners.forEach { it.onSevere(error, context) }
     }
 
-    private fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {
+    private fun onError(problems: MessageProblems, context: MessageContext) {
         listeners.forEach { it.onError(problems, context) }
     }
 
     interface PacketListener {
-        fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext)
-        fun onSevere(error: MessageProblems.MessageException, context: RapidsConnection.MessageContext) {}
-        fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {}
+        fun onPacket(packet: JsonMessage, context: MessageContext)
+        fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
+        fun onError(problems: MessageProblems, context: MessageContext) {}
     }
 }

@@ -20,7 +20,7 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
         }.register(this)
     }
 
-    override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+    override fun onPacket(packet: JsonMessage, context: MessageContext) {
         val pingTime = packet["ping_time"].asLocalDateTime()
         if (pingTime < LocalDateTime.now().minusHours(1))
             return
@@ -30,6 +30,6 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
         packet["pong_time"] = LocalDateTime.now()
         packet["app_name"] = appName
         packet["instance_id"] = instanceId
-        context.send(packet.toJson())
+        context.publish(packet.toJson())
     }
 }

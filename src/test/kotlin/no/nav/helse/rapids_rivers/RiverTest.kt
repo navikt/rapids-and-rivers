@@ -37,10 +37,9 @@ internal class RiverTest {
         assertFalse(messageProblems.hasErrors())
     }
 
-    private val context = object : RapidsConnection.MessageContext {
-        override fun send(message: String) {}
-
-        override fun send(key: String, message: String) {}
+    private val context = object : MessageContext {
+        override fun publish(message: String) {}
+        override fun publish(key: String, message: String) {}
     }
 
     private var gotMessage = false
@@ -61,18 +60,18 @@ internal class RiverTest {
         messageProblems = MessageProblems("{}")
         river = River(rapid).apply {
             register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+                override fun onPacket(packet: JsonMessage, context: MessageContext) {
                     gotMessage = true
                 }
 
                 override fun onSevere(
                     error: MessageProblems.MessageException,
-                    context: RapidsConnection.MessageContext
+                    context: MessageContext
                 ) {
                     messageProblems = error.problems
                 }
 
-                override fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {
+                override fun onError(problems: MessageProblems, context: MessageContext) {
                     messageProblems = problems
                 }
             })
