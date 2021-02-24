@@ -29,7 +29,7 @@ jobs:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --org=tbd-ty7 --fail-on=all --project-name=rapids-and-rivers --configuration-matching='^api'
+          args: --org=tbd-ty7 --fail-on=all --project-name=rapids-and-rivers --configuration-matching='^runtimeClasspath'
           command: monitor
 
   release:
