@@ -2,38 +2,50 @@ package no.nav.helse.rapids_rivers
 
 import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.WakeupException
+import org.apache.kafka.common.serialization.Deserializer
+import org.apache.kafka.common.serialization.Serializer
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.*
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRapid(
-    consumerConfig: Properties,
-    producerConfig: Properties,
     private val rapidTopic: String,
-    extraTopics: List<String> = emptyList()
+    extraTopics: List<String>,
+    private val consumer: Consumer<String, String>,
+    private val producer: Producer<String, String>,
+    private val autoCommit: Boolean
 ) : RapidsConnection(), ConsumerRebalanceListener {
-
+    constructor(    consumerConfig: Properties,
+                    producerConfig: Properties,
+                    rapidTopic: String,
+                    extraTopics: List<String> = emptyList(),
+                    stringDeserializer: Deserializer<String> = StringDeserializer(),
+                    stringSerializer: Serializer<String> = StringSerializer()
+                ): this(
+        rapidTopic = rapidTopic,
+        extraTopics = extraTopics,
+        consumer = KafkaConsumer(consumerConfig, stringDeserializer, stringDeserializer),
+        producer = KafkaProducer(producerConfig, stringSerializer, stringSerializer),
+        autoCommit = consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".toLowerCase() } ?: false
+    )
     private val log = LoggerFactory.getLogger(KafkaRapid::class.java)
 
     private val running = AtomicBoolean(Stopped)
     private val ready = AtomicBoolean(false)
     private val producerClosed = AtomicBoolean(false)
 
-    private val stringDeserializer = StringDeserializer()
-    private val stringSerializer = StringSerializer()
-    private val autoCommit = consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".toLowerCase() } ?: false
-    private val consumer = KafkaConsumer(consumerConfig, stringDeserializer, stringDeserializer)
-    private val producer = KafkaProducer(producerConfig, stringSerializer, stringSerializer)
-
     private val topics = listOf(rapidTopic) + extraTopics
 
     private var seekToBeginning = false
+    private var ignoreErrorsOnSend = true
 
     init {
         log.info("rapid initialized, autoCommit=$autoCommit")
@@ -44,17 +56,33 @@ class KafkaRapid(
         seekToBeginning = true
     }
 
+    fun syncronizedPublish() {
+        ignoreErrorsOnSend = false
+    }
+
     fun isRunning() = running.get()
     fun isReady() = isRunning() && ready.get()
 
     override fun publish(message: String) {
-        check(!producerClosed.get()) { "can't publish messages when producer is closed" }
-        producer.send(ProducerRecord(rapidTopic, message))
+        publish(ProducerRecord(rapidTopic, message))
     }
 
     override fun publish(key: String, message: String) {
+        publish(ProducerRecord(rapidTopic, key, message))
+    }
+
+
+    private fun publish(record: ProducerRecord<String, String>) {
         check(!producerClosed.get()) { "can't publish messages when producer is closed" }
-        producer.send(ProducerRecord(rapidTopic, key, message))
+        producer.send(record).also {
+            if(!ignoreErrorsOnSend){
+                try {
+                    it.get().hasOffset()
+                } catch (ex: ExecutionException){
+                    ex?.cause?.also { throw it }
+                }
+            }
+        }
     }
 
     override fun start() {
