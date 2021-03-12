@@ -4,7 +4,7 @@ import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.errors.WakeupException
+import org.apache.kafka.common.errors.*
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
@@ -48,13 +48,20 @@ class KafkaRapid(
     fun isReady() = isRunning() && ready.get()
 
     override fun publish(message: String) {
-        check(!producerClosed.get()) { "can't publish messages when producer is closed" }
-        producer.send(ProducerRecord(rapidTopic, message))
+        publish(ProducerRecord(rapidTopic, message))
     }
 
     override fun publish(key: String, message: String) {
+        publish(ProducerRecord(rapidTopic, key, message))
+    }
+
+    private fun publish(producerRecord: ProducerRecord<String, String>) {
         check(!producerClosed.get()) { "can't publish messages when producer is closed" }
-        producer.send(ProducerRecord(rapidTopic, key, message))
+        producer.send(producerRecord) { _, err ->
+            if (err == null || !isFatalError(err)) return@send
+            log.error("Shutting down rapid due to fatal error: ${err.message}", err)
+            stop()
+        }
     }
 
     override fun start() {
@@ -193,5 +200,14 @@ class KafkaRapid(
             rapidTopic = topic,
             extraTopics = extraTopics
         )
+
+        private fun isFatalError(err: Exception) = when (err) {
+            is InvalidTopicException,
+            is RecordBatchTooLargeException,
+            is RecordTooLargeException,
+            is UnknownServerException,
+            is AuthorizationException -> true
+            else -> false
+        }
     }
 }
