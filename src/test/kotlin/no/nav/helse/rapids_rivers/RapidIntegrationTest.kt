@@ -24,76 +24,51 @@ import java.time.Duration
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class RapidIntegrationTest {
-    private companion object {
+    private val objectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private val consumerId = "test-app"
 
-        private val objectMapper = jacksonObjectMapper()
-                .registerModule(JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        private val consumerId = "test-app"
+    private val testTopic = "a-test-topic"
+    private val anotherTestTopic = "a-test-topic"
 
-        private val testTopic = "a-test-topic"
-        private val anotherTestTopic = "a-test-topic"
+    private val embeddedKafkaEnvironment = KafkaEnvironment(
+        autoStart = false,
+        noOfBrokers = 1,
+        topicInfos = listOf(testTopic, anotherTestTopic).map { KafkaEnvironment.TopicInfo(it, partitions = 1) },
+        withSchemaRegistry = false,
+        withSecurity = false
+    )
 
-        private val embeddedKafkaEnvironment = KafkaEnvironment(
-                autoStart = false,
-                noOfBrokers = 1,
-                topicInfos = listOf(testTopic, anotherTestTopic).map { KafkaEnvironment.TopicInfo(it, partitions = 1) },
-                withSchemaRegistry = false,
-                withSecurity = false
+    private lateinit var kafkaProducer: Producer<String, String>
+    private lateinit var kafkaConsumer: Consumer<String, String>
+
+    private lateinit var config: KafkaConfig
+    private lateinit var rapid: KafkaRapid
+    private lateinit var rapidJob: Job
+
+    @BeforeAll
+    internal fun setup() {
+        embeddedKafkaEnvironment.start()
+
+        kafkaProducer = KafkaProducer(producerProperties(), StringSerializer(), StringSerializer())
+        kafkaConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer())
+        kafkaConsumer.subscribe(listOf(testTopic))
+
+        config = KafkaConfig(
+            bootstrapServers = embeddedKafkaEnvironment.brokersURL,
+            consumerGroupId = consumerId
         )
+    }
 
-        private lateinit var kafkaProducer: Producer<String, String>
-        private lateinit var kafkaConsumer: Consumer<String, String>
-
-        private lateinit var config: KafkaConfig
-        private lateinit var rapid: KafkaRapid
-        private lateinit var rapidJob: Job
-
-        private fun producerProperties() =
-                Properties().apply {
-                    put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
-                    put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-                    put(ProducerConfig.ACKS_CONFIG, "all")
-                    put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
-                    put(ProducerConfig.LINGER_MS_CONFIG, "0")
-                    put(ProducerConfig.RETRIES_CONFIG, "0")
-                    put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-                }
-
-        private fun consumerProperties(): MutableMap<String, Any>? {
-            return HashMap<String, Any>().apply {
-                put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
-                put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-                put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-                put(ConsumerConfig.GROUP_ID_CONFIG, "integration-test")
-                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            }
-        }
-
-        @BeforeAll
-        @JvmStatic
-        internal fun setup() {
-            embeddedKafkaEnvironment.start()
-
-            kafkaProducer = KafkaProducer(producerProperties(), StringSerializer(), StringSerializer())
-            kafkaConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer())
-            kafkaConsumer.subscribe(listOf(testTopic))
-
-            config = KafkaConfig(
-                    bootstrapServers = embeddedKafkaEnvironment.brokersURL,
-                    consumerGroupId = consumerId
-            )
-        }
-
-        @AfterAll
-        @JvmStatic
-        internal fun `teardown`() {
-            kafkaConsumer.unsubscribe()
-            kafkaConsumer.close()
-            kafkaProducer.close()
-            embeddedKafkaEnvironment.tearDown()
-        }
+    @AfterAll
+    internal fun teardown() {
+        kafkaConsumer.unsubscribe()
+        kafkaConsumer.close()
+        kafkaProducer.close()
+        embeddedKafkaEnvironment.tearDown()
     }
 
     @BeforeEach
@@ -296,5 +271,26 @@ internal class RapidIntegrationTest {
                 }
                 return@until false
             }
+    }
+
+    private fun producerProperties() =
+        Properties().apply {
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
+            put(ProducerConfig.ACKS_CONFIG, "all")
+            put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
+            put(ProducerConfig.LINGER_MS_CONFIG, "0")
+            put(ProducerConfig.RETRIES_CONFIG, "0")
+            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+        }
+
+    private fun consumerProperties(): MutableMap<String, Any>? {
+        return HashMap<String, Any>().apply {
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
+            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+            put(ConsumerConfig.GROUP_ID_CONFIG, "integration-test")
+            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        }
     }
 }

@@ -137,7 +137,7 @@ internal class RapidApplicationComponentTest {
 
     @Test
     fun `metrics endpoints`() {
-        withRapid { rapid ->
+        withRapid { _ ->
             await("wait until metrics are available")
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/metrics") }
