@@ -54,6 +54,8 @@ dependencies {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+
+    withSourcesJar()
 }
 
 tasks.withType<KotlinCompile> {
@@ -85,11 +87,6 @@ repositories {
     maven("https://dl.bintray.com/kotlin/ktor")
     maven("https://packages.confluent.io/maven/")
     maven("https://jitpack.io")
-}
-
-val sourcesJar by tasks.registering(Jar::class) {
-    classifier = "sources"
-    from(sourceSets.main.get().allSource)
 }
 
 val githubUser: String? by project
@@ -127,7 +124,6 @@ publishing {
                 }
             }
             from(components["java"])
-            artifact(sourcesJar.get())
         }
     }
 }
