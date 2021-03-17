@@ -1,24 +1,31 @@
 package no.nav.helse.rapids_rivers
 
-fun interface Validation {
-    fun validate(message: JsonMessage)
-}
-
 class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListener {
+    private val validations = mutableListOf<PacketValidation>()
 
-    private val validations = mutableListOf<Validation>()
     private val listeners = mutableListOf<PacketListener>()
-
     init {
         rapidsConnection.register(this)
     }
 
-    fun validate(validation: Validation) {
+    fun validate(validation: PacketValidation): River {
         validations.add(validation)
+        return this
     }
 
-    fun register(listener: PacketListener) {
+    fun onSuccess(listener: PacketValidationSuccessListener): River {
+        listeners.add(DelegatedPacketListener(listener))
+        return this
+    }
+
+    fun onError(listener: PacketValidationErrorListener): River {
+        listeners.add(DelegatedPacketListener(listener))
+        return this
+    }
+
+    fun register(listener: PacketListener): River {
         listeners.add(listener)
+        return this
     }
 
     override fun onMessage(message: String, context: MessageContext) {
@@ -45,9 +52,37 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         listeners.forEach { it.onError(problems, context) }
     }
 
-    interface PacketListener {
+    fun interface PacketValidation {
+        fun validate(message: JsonMessage)
+    }
+
+    fun interface PacketValidationSuccessListener {
         fun onPacket(packet: JsonMessage, context: MessageContext)
+    }
+
+    fun interface PacketValidationErrorListener {
+        fun onError(problems: MessageProblems, context: MessageContext)
+    }
+
+    interface PacketListener : PacketValidationErrorListener, PacketValidationSuccessListener {
+        override fun onError(problems: MessageProblems, context: MessageContext) {}
+
         fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
-        fun onError(problems: MessageProblems, context: MessageContext) {}
+    }
+
+    private class DelegatedPacketListener private constructor(
+        private val packetHandler: PacketValidationSuccessListener,
+        private val errorHandler: PacketValidationErrorListener
+    ) : PacketListener  {
+        constructor(packetHandler: PacketValidationSuccessListener) : this(packetHandler, { _, _ -> })
+        constructor(errorHandler: PacketValidationErrorListener) : this({ _, _ -> }, errorHandler)
+
+        override fun onError(problems: MessageProblems, context: MessageContext) {
+            errorHandler.onError(problems, context)
+        }
+
+        override fun onPacket(packet: JsonMessage, context: MessageContext) {
+            packetHandler.onPacket(packet, context)
+        }
     }
 }

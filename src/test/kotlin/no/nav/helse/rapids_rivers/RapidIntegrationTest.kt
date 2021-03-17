@@ -127,11 +127,7 @@ internal class RapidIntegrationTest {
 
     @Test
     fun `should stop on errors`() {
-        rapid.register(object : RapidsConnection.MessageListener {
-            override fun onMessage(message: String, context: MessageContext) {
-                throw RuntimeException()
-            }
-        })
+        rapid.register { _, _ -> throw RuntimeException() }
 
         await("wait until the rapid stops")
             .atMost(20, SECONDS)
@@ -161,17 +157,16 @@ internal class RapidIntegrationTest {
         var readFailedMessage = false
 
         rapid = createTestRapid()
-        River(rapid).apply { validate { it.requireKey("test_message_index") } }
-                .register(object : River.PacketListener {
-                    override fun onPacket(packet: JsonMessage, context: MessageContext) {
-                        val index = packet["test_message_index"].asInt()
-                        println("Read test_message_index=$index")
-                        if (index == failOnMessage) {
-                            readFailedMessage = true
-                            throw RuntimeException("an unexpected error happened")
-                        }
-                    }
-                })
+        River(rapid)
+            .validate { it.requireKey("test_message_index") }
+            .onSuccess { packet: JsonMessage, _: MessageContext ->
+                val index = packet["test_message_index"].asInt()
+                println("Read test_message_index=$index")
+                if (index == failOnMessage) {
+                    readFailedMessage = true
+                    throw RuntimeException("an unexpected error happened")
+                }
+            }
 
         rapid.startNonBlocking()
 
@@ -195,13 +190,7 @@ internal class RapidIntegrationTest {
 
     private fun ensureRapidIsActive() {
         val readMessages = mutableListOf<JsonMessage>()
-        River(rapid).apply {
-            register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: MessageContext) {
-                    readMessages.add(packet)
-                }
-            })
-        }
+        River(rapid).onSuccess { packet: JsonMessage, _: MessageContext -> readMessages.add(packet) }
 
         await("wait until the rapid has read the test message")
                 .atMost(5, SECONDS)
@@ -224,13 +213,7 @@ internal class RapidIntegrationTest {
     @Test
     fun `seek to beginning`() {
         val readMessages = mutableListOf<JsonMessage>()
-        River(rapid).apply {
-            register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: MessageContext) {
-                    readMessages.add(packet)
-                }
-            })
-        }
+        River(rapid).onSuccess { packet: JsonMessage, _: MessageContext -> readMessages.add(packet) }
 
         var producedMessages = 0
         await("wait until the rapid has read the test message")
@@ -247,13 +230,7 @@ internal class RapidIntegrationTest {
         readMessages.clear()
 
         rapid = createTestRapid()
-        River(rapid).apply {
-            register(object : River.PacketListener {
-                override fun onPacket(packet: JsonMessage, context: MessageContext) {
-                    readMessages.add(packet)
-                }
-            })
-        }
+        River(rapid).onSuccess { packet: JsonMessage, _: MessageContext -> readMessages.add(packet) }
         rapid.seekToBeginning()
         rapid.startNonBlocking()
 
