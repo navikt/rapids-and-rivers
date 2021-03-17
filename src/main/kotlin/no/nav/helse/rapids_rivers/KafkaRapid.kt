@@ -118,7 +118,7 @@ class KafkaRapid(
     }
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
-        val context = KafkaMessageContext(record, this)
+        val context = KeyMessageContext(this, record.key())
         listeners.forEach { it.onMessage(record.value(), context) }
     }
 
@@ -173,20 +173,6 @@ class KafkaRapid(
             block()
         } catch (err: Exception) {
             log.error(err.message, err)
-        }
-    }
-
-    private class KafkaMessageContext(
-        private val record: ConsumerRecord<String, String>,
-        private val rapidsConnection: RapidsConnection
-    ) : MessageContext {
-        override fun publish(message: String) {
-            if (record.key() == null) return rapidsConnection.publish(message)
-            publish(record.key(), message)
-        }
-
-        override fun publish(key: String, message: String) {
-            rapidsConnection.publish(key, message)
         }
     }
 
