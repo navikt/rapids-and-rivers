@@ -80,13 +80,13 @@ class KafkaRapid(
         if (partitions.isEmpty()) return
         log.info("partitions assigned: $partitions")
         ensureConsumerPosition(partitions)
-        statusListeners.forEach { it.onReady(this) }
+        notifyReady()
     }
 
     override fun onPartitionsRevoked(partitions: Collection<TopicPartition>) {
         log.info("partitions revoked: $partitions")
         partitions.forEach { it.commitSync() }
-        statusListeners.forEach { it.onNotReady(this) }
+        notifyNotReady()
     }
 
     private fun ensureConsumerPosition(partitions: Collection<TopicPartition>) {
@@ -119,13 +119,13 @@ class KafkaRapid(
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
         val context = KeyMessageContext(this, record.key())
-        listeners.forEach { it.onMessage(record.value(), context) }
+        notifyMessage(record.value(), context)
     }
 
     private fun consumeMessages() {
         var lastException: Exception? = null
         try {
-            statusListeners.forEach { it.onStartup(this) }
+            notifyStartup()
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
@@ -138,13 +138,7 @@ class KafkaRapid(
             lastException = err
             throw err
         } finally {
-            statusListeners.forEach {
-                try {
-                    it.onShutdown(this)
-                } catch (err: Exception) {
-                    log.error("A shutdown callback threw an exception: ${err.message}", err)
-                }
-            }
+            notifyShutdown()
             closeResources(lastException)
         }
     }

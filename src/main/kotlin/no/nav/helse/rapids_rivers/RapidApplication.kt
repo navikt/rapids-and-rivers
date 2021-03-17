@@ -30,7 +30,7 @@ class RapidApplication internal constructor(
     }
 
     override fun onMessage(message: String, context: MessageContext) {
-        listeners.forEach { it.onMessage(message, context) }
+        notifyMessage(message, context)
     }
 
     override fun start() {
@@ -58,28 +58,22 @@ class RapidApplication internal constructor(
 
     override fun onStartup(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_up")
-        statusListeners.forEach { it.onStartup(this) }
+        notifyStartup()
     }
 
     override fun onReady(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_ready")
-        statusListeners.forEach { it.onReady(this) }
+        notifyReady()
     }
 
     override fun onNotReady(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_not_ready")
-        statusListeners.forEach { it.onReady(this) }
+        notifyNotReady()
     }
 
     override fun onShutdown(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_down")
-        statusListeners.forEach {
-            try {
-                it.onShutdown(this)
-            } catch (err: Exception) {
-                log.error("A shutdown callback threw an exception: ${err.message}", err)
-            }
-        }
+        notifyShutdown()
     }
 
     private fun publishApplicationEvent(rapidsConnection: RapidsConnection, event: String) {

@@ -8,9 +8,14 @@ interface MessageContext {
 }
 
 abstract class RapidsConnection : MessageContext {
+    private companion object {
+        private val log = LoggerFactory.getLogger(RapidsConnection::class.java)
+        private val sikkerLogg = LoggerFactory.getLogger("tjenestekall")
+    }
 
-    protected val statusListeners = mutableListOf<StatusListener>()
-    protected val listeners = mutableListOf<MessageListener>()
+    private val statusListeners = mutableListOf<StatusListener>()
+    private val listeners = mutableListOf<MessageListener>()
+    private val replayMessages = mutableListOf<Pair<String, MessageContext>>()
 
     fun register(listener: StatusListener) {
         statusListeners.add(listener)
@@ -18,6 +23,48 @@ abstract class RapidsConnection : MessageContext {
 
     fun register(listener: MessageListener) {
         listeners.add(listener)
+    }
+
+    fun queueReplayMessage(key: String, message: String) {
+        val context = KeyMessageContext(this, key)
+        replayMessages.add(message to context)
+    }
+
+    private fun replayMessage(replayMessage: Pair<String, MessageContext>) {
+        sikkerLogg.info("replayer melding:\n\t${replayMessage.first}")
+        notifyMessage(replayMessage.first, replayMessage.second)
+    }
+
+    protected fun notifyMessage(message: String, context: MessageContext) {
+        listeners.forEach { it.onMessage(message, context) }
+        replayMessages()
+    }
+
+    private fun replayMessages() {
+        if (replayMessages.isEmpty()) return
+        log.info("det er ${replayMessages.size} meldinger køet for replay")
+        sikkerLogg.info("det er ${replayMessages.size} meldinger køet for replay")
+        replayMessage(replayMessages.removeAt(0))
+    }
+
+    protected fun notifyStartup() {
+        statusListeners.forEach { it.onStartup(this) }
+    }
+
+    protected fun notifyReady() {
+        statusListeners.forEach { it.onReady(this) }
+    }
+    protected fun notifyNotReady() {
+        statusListeners.forEach { it.onNotReady(this) }
+    }
+    protected fun notifyShutdown() {
+        statusListeners.forEach {
+            try {
+                it.onShutdown(this)
+            } catch (err: Exception) {
+                log.error("A shutdown callback threw an exception: ${err.message}", err)
+            }
+        }
     }
 
     abstract fun start()
@@ -32,52 +79,5 @@ abstract class RapidsConnection : MessageContext {
 
     fun interface MessageListener {
         fun onMessage(message: String, context: MessageContext)
-    }
-
-    class Replayable(private val rapidsConnection: RapidsConnection) : RapidsConnection(), MessageListener {
-        private companion object {
-            private val log = LoggerFactory.getLogger(Replayable::class.java)
-            private val sikkerLogg = LoggerFactory.getLogger("tjenestekall")
-        }
-
-        private val replayMessages = mutableListOf<Pair<String, MessageContext>>()
-
-        init {
-            rapidsConnection.register(this)
-        }
-
-        override fun onMessage(message: String, context: MessageContext) {
-            listeners.forEach { it.onMessage(message, context) }
-            if (replayMessages.isEmpty()) return
-            log.info("det er ${replayMessages.size} meldinger køet for replay")
-            sikkerLogg.info("det er ${replayMessages.size} meldinger køet for replay")
-            replayMessage(replayMessages.removeAt(0))
-        }
-
-        fun queueReplayMessage(key: String, message: String) {
-            val context = KeyMessageContext(this, key)
-            replayMessages.add(message to context)
-        }
-
-        private fun replayMessage(replayMessage: Pair<String, MessageContext>) {
-            sikkerLogg.info("replayer melding:\n\t${replayMessage.first}")
-            onMessage(replayMessage.first, replayMessage.second)
-        }
-
-        override fun publish(message: String) {
-            rapidsConnection.publish(message)
-        }
-
-        override fun publish(key: String, message: String) {
-            rapidsConnection.publish(key, message)
-        }
-
-        override fun start() {
-            rapidsConnection.start()
-        }
-
-        override fun stop() {
-            rapidsConnection.stop()
-        }
     }
 }
