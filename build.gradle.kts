@@ -69,7 +69,7 @@ tasks.named<KotlinCompile>("compileTestKotlin") {
 tasks.withType<Test> {
     useJUnitPlatform()
     testLogging {
-        events("passed", "skipped", "failed")
+        events("skipped", "failed")
         showExceptions = true
         showStackTraces = true
         showCauses = true

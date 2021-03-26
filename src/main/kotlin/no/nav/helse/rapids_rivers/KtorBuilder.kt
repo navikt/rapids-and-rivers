@@ -1,13 +1,10 @@
 package no.nav.helse.rapids_rivers
 
-import io.ktor.application.Application
-import io.ktor.application.call
-import io.ktor.application.install
+import io.ktor.application.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.metrics.micrometer.MicrometerMetrics
-import io.ktor.response.respondText
-import io.ktor.response.respondTextWriter
+import io.ktor.response.*
 import io.ktor.routing.get
 import io.ktor.routing.routing
 import io.ktor.server.engine.*
@@ -24,6 +21,7 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
+import kotlinx.coroutines.delay
 import org.slf4j.Logger
 
 class KtorBuilder {
@@ -79,6 +77,19 @@ class KtorBuilder {
         this.log = builder.log
         this.modules.addAll(builder.modules)
     })
+
+    fun preStopHook(preStopHook: suspend () -> Unit) = apply {
+        builder.module {
+            routing {
+                get("/stop") {
+                    log.info("Received shutdown signal via preStopHookPath, calling actual stop hook")
+                    preStopHook()
+                    log.info("Stop hook returned, responding to preStopHook request with 200 OK")
+                    call.respond(HttpStatusCode.OK)
+                }
+            }
+        }
+    }
 
     fun liveness(isAliveCheck: () -> Boolean) = apply {
         builder.module {

@@ -136,6 +136,23 @@ internal class RapidApplicationComponentTest {
     }
 
     @Test
+    fun `pre stop hook`() {
+        withRapid() { rapid  ->
+            await("wait until the rapid has started")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/isalive") }
+
+            await("wait until the rapid has been assigned partitions")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/isready") }
+
+            await("wait until the rapid has stopped after receiving signal")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/stop") }
+        }
+    }
+
+    @Test
     fun `metrics endpoints`() {
         withRapid { _ ->
             await("wait until metrics are available")

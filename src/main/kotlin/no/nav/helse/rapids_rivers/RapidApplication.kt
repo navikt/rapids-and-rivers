@@ -3,18 +3,22 @@ package no.nav.helse.rapids_rivers
 import io.ktor.application.Application
 import io.ktor.server.engine.ApplicationEngine
 import io.prometheus.client.CollectorRegistry
+import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.InetAddress
 import java.time.LocalDateTime
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
     private val rapid: RapidsConnection,
     private val appName: String? = null,
-    private val instanceId: String
+    private val instanceId: String,
+    private val onKtorStartup: () -> Unit = {},
+    private val onKtorShutdown: () -> Unit = {}
 ) : RapidsConnection(), RapidsConnection.MessageListener, RapidsConnection.StatusListener {
 
     init {
@@ -35,12 +39,21 @@ class RapidApplication internal constructor(
 
     override fun start() {
         ktor.start(wait = false)
-        rapid.start()
+        try {
+            onKtorStartup()
+            rapid.start()
+        } finally {
+            onKtorShutdown()
+            val gracePeriod = 5000L
+            val forcefulShutdownTimeout = 30000L
+            log.info("shutting down ktor, waiting $gracePeriod ms for workers to exit. Forcing shutdown after $forcefulShutdownTimeout ms")
+            ktor.stop(gracePeriod, forcefulShutdownTimeout)
+            log.info("ktor shutdown complete: end of life. goodbye.")
+        }
     }
 
     override fun stop() {
         rapid.stop()
-        ktor.stop(1000, 1000)
     }
 
     override fun publish(message: String) {
@@ -107,11 +120,13 @@ class RapidApplication internal constructor(
             Thread.currentThread().setUncaughtExceptionHandler(::uncaughtExceptionHandler)
         }
 
+        private val isKtorRunning = AtomicBoolean(false)
         private val rapid = KafkaRapid.create(config.kafkaConfig, config.rapidTopic, config.extraTopics)
 
         private val ktor = KtorBuilder()
             .log(log)
             .port(config.httpPort)
+            .preStopHook(this::handlePreStopRequest)
             .liveness(rapid::isRunning)
             .readiness(rapid::isReady)
 
@@ -126,7 +141,24 @@ class RapidApplication internal constructor(
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
             val app = ktor.build()
             configure(app, rapid)
-            return RapidApplication(app, rapid, config.appName, config.instanceId)
+            return RapidApplication(app, rapid, config.appName, config.instanceId, this::onKtorStartup, this::onKtorShutdown)
+        }
+
+        private suspend fun handlePreStopRequest() {
+            rapid.stop()
+            // block the preStopHook call from returning until
+            // ktor is ready to shutdown, which means that the KafkaRapid has shutdown
+            while (isKtorRunning.get()) {
+                delay(1000)
+            }
+        }
+
+        private fun onKtorStartup() {
+            isKtorRunning.set(true)
+        }
+
+        private fun onKtorShutdown() {
+            isKtorRunning.set(false)
         }
 
         private fun uncaughtExceptionHandler(thread: Thread, err: Throwable) {
