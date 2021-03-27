@@ -8,7 +8,9 @@ import org.apache.kafka.common.errors.*
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -118,8 +120,10 @@ class KafkaRapid(
     }
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
-        val context = KeyMessageContext(this, record.key())
-        notifyMessage(record.value(), context)
+        withMDC(recordDiganostics(record)) {
+            val context = KeyMessageContext(this, record.key())
+            notifyMessage(record.value(), context)
+        }
     }
 
     private fun consumeMessages() {
@@ -129,7 +133,11 @@ class KafkaRapid(
             ready.set(true)
             consumer.subscribe(topics, this)
             while (running.get()) {
-                consumer.poll(Duration.ofSeconds(1)).also { onRecords(it) }
+                consumer.poll(Duration.ofSeconds(1)).also {
+                    withMDC(pollDiganostics(it)) {
+                        onRecords(it)
+                    }
+                }
             }
         } catch (err: WakeupException) {
             // throw exception if we have not been told to stop
@@ -142,6 +150,22 @@ class KafkaRapid(
             closeResources(lastException)
         }
     }
+
+    private fun pollDiganostics(records: ConsumerRecords<String, String>) = mapOf(
+        "rapids_poll_id" to "${UUID.randomUUID()}",
+        "rapids_poll_time" to "${LocalDateTime.now()}",
+        "rapids_poll_count" to "${records.count()}"
+    )
+
+    private fun recordDiganostics(record: ConsumerRecord<String, String>) = mapOf(
+        "rapids_record_id" to "${UUID.randomUUID()}",
+        "rapids_record_before_notify_time" to "${LocalDateTime.now()}",
+        "rapids_record_produced_time" to "${record.timestamp()}",
+        "rapids_record_produced_time_type" to "${record.timestampType()}",
+        "rapids_record_topic" to record.topic(),
+        "rapids_record_partition" to "${record.partition()}",
+        "rapids_record_offset" to "${record.offset()}"
+    )
 
     private fun TopicPartition.commitSync() {
         if (autoCommit) return
