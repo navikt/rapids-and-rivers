@@ -108,6 +108,17 @@ open class JsonMessage(
         demandAll(key, values.map(Enum<*>::name))
     }
 
+    fun demand(key: String, parser: (JsonNode) -> Any) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        try {
+            parser(node)
+        } catch (err: Exception) {
+            problems.severe("Demanded $key did not match the predicate: ${err.message}")
+        }
+        accessor(key)
+    }
+
     fun requireKey(vararg keys: String) {
         keys.forEach { requireKey(it) }
     }
