@@ -97,6 +97,13 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun demandAny(key: String, values: List<String>) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing demanded key $key")
+        if (!node.isTextual || node.asText() !in values) return problems.severe("Demanded $key must be one of $values")
+        accessor(key)
+    }
+
     fun demandAllOrAny(key: String, values: List<String>) {
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")

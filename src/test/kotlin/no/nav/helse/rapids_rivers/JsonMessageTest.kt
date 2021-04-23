@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -495,6 +496,25 @@ internal class JsonMessageTest {
                     demandAll("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
+            }
+        }
+    }
+
+    @Test
+    fun demandValueOneOf() {
+        "{\"foo\": \"bar\" }".also { json ->
+            message(json).also {
+                assertThrows(MessageProblems.MessageException::class.java) {
+                    it.demandAny("foo", listOf("foo"))
+                }
+                assertThrows<IllegalArgumentException> { it["foo"] }
+            }
+            message(json).also {
+                assertDoesNotThrow {
+                    it.demandAny("foo", listOf("bar", "foobar"))
+                }
+                assertFalse(problems.hasErrors()) { "did not expect errors: $problems" }
+                assertDoesNotThrow { it["foo"] }
             }
         }
     }
