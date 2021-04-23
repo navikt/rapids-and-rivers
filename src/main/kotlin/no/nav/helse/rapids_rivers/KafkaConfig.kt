@@ -59,7 +59,7 @@ class KafkaConfig(
         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
     }
 
-    private fun kafkaBaseConfig() = Properties().apply {
+    internal fun kafkaBaseConfig() = Properties().apply {
 
         if(keystoreLocation.isNullOrBlank() || keystorePassword.isNullOrBlank()){
             put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)

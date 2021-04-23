@@ -172,8 +172,9 @@ class RapidApplication internal constructor(
         internal val rapidTopic: String,
         internal val extraTopics: List<String> = emptyList(),
         internal val kafkaConfig: KafkaConfig,
-        internal val httpPort: Int = 8080
-    ) {
+        internal val httpPort: Int = 8080) {
+        val kafkaBaseConfig = kafkaConfig.kafkaBaseConfig()
+
         companion object {
             fun fromEnv(env: Map<String, String>) = generateInstanceId(env).let { instanceId ->
                 RapidApplicationConfig(
