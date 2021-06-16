@@ -4,6 +4,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private val validations = mutableListOf<PacketValidation>()
 
     private val listeners = mutableListOf<PacketListener>()
+
     init {
         rapidsConnection.register(this)
     }
@@ -33,15 +34,25 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         try {
             val packet = JsonMessage(message, problems)
             validations.forEach { it.validate(packet) }
-            if (problems.hasErrors()) return onError(problems, context)
+            if (problems.hasErrors()) {
+                Metrics.onMessageCounter.labels("error").inc()
+                return onError(problems, context)
+            }
             onPacket(packet, context)
+            Metrics.onMessageCounter.labels("ok").inc()
         } catch (err: MessageProblems.MessageException) {
+            Metrics.onMessageCounter.labels("exception").inc()
             return onSevere(err, context)
         }
     }
 
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
-        listeners.forEach { it.onPacket(packet, context) }
+        packet.interestedIn("@event_name")
+        listeners.forEach {
+            Metrics.onPacketHistorgram.labels(packet["@event_name"].textValue() ?: "ukjent").time {
+                it.onPacket(packet, context)
+            }
+        }
     }
 
     private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
@@ -73,10 +84,9 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private class DelegatedPacketListener private constructor(
         private val packetHandler: PacketValidationSuccessListener,
         private val errorHandler: PacketValidationErrorListener
-    ) : PacketListener  {
+    ) : PacketListener {
         constructor(packetHandler: PacketValidationSuccessListener) : this(packetHandler, { _, _ -> })
         constructor(errorHandler: PacketValidationErrorListener) : this({ _, _ -> }, errorHandler)
-
         override fun onError(problems: MessageProblems, context: MessageContext) {
             errorHandler.onError(problems, context)
         }
