@@ -4,11 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.application.call
-import io.ktor.http.ContentType
-import io.ktor.response.respondText
-import io.ktor.routing.get
-import io.ktor.routing.routing
+import io.ktor.application.*
+import io.ktor.http.*
+import io.ktor.response.*
+import io.ktor.routing.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
 import no.nav.common.KafkaEnvironment
@@ -22,7 +21,9 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import java.io.BufferedReader
 import java.io.IOException
+import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URL
@@ -30,6 +31,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit.SECONDS
+import java.util.stream.Collectors
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class RapidApplicationComponentTest {
@@ -37,6 +39,7 @@ internal class RapidApplicationComponentTest {
     private val objectMapper = jacksonObjectMapper()
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
 
     private val testTopic = "a-test-topic"
     private val embeddedKafkaEnvironment = KafkaEnvironment(
@@ -137,7 +140,7 @@ internal class RapidApplicationComponentTest {
 
     @Test
     fun `pre stop hook`() {
-        withRapid() { rapid  ->
+        withRapid() { _ ->
             await("wait until the rapid has started")
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/isalive") }
@@ -162,6 +165,23 @@ internal class RapidApplicationComponentTest {
             await("ensure metrics are still available")
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/metrics") }
+        }
+    }
+
+    @Test
+    fun `metric values`() {
+        withRapid(collectorRegistry = CollectorRegistry.defaultRegistry) { rapid ->
+            waitForEvent("application_ready")
+            rapid.publish("""{"@event_name":"ping","@id":"1","ping_time":"${LocalDateTime.now()}"}""")
+            waitForEvent("ping")
+            await("wait until metrics are available")
+                .atMost(40, SECONDS)
+                .until { isOkResponse("/metrics") }
+
+            val response = BufferedReader(InputStreamReader((URL("$appUrl/metrics").openConnection() as HttpURLConnection).inputStream)).lines()
+                .collect(Collectors.joining())
+            assertTrue(response.contains("message_counter"))
+            assertTrue(response.contains("on_packet_seconds"))
         }
     }
 
@@ -198,9 +218,13 @@ internal class RapidApplicationComponentTest {
             }) { it != null }
     }
 
-    private fun withRapid(builder: RapidApplication.Builder? = null, block: (RapidsConnection) -> Unit) {
+    private fun withRapid(
+        builder: RapidApplication.Builder? = null,
+        collectorRegistry: CollectorRegistry = CollectorRegistry(),
+        block: (RapidsConnection) -> Unit
+    ) {
         val rapidsConnection = (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
-            .withCollectorRegistry(CollectorRegistry())
+            .withCollectorRegistry(collectorRegistry)
             .build()
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {
