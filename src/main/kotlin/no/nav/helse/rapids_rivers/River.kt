@@ -41,7 +41,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             onPacket(packet, context)
             Metrics.onMessageCounter.labels("ok").inc()
         } catch (err: MessageProblems.MessageException) {
-            Metrics.onMessageCounter.labels("exception").inc()
+            Metrics.onMessageCounter.labels("severe").inc()
             return onSevere(err, context)
         }
     }
