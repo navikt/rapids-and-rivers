@@ -37,16 +37,14 @@ jobs:
         uses: actions/checkout@v1
       - name: Set release tag
         run: |
-          export TAG_NAME="$(date "+%Y%m%d%H%M%S")-$(echo $GITHUB_SHA | cut -c1-7)"
+          export TAG_NAME="$(TZ="Europe/Oslo" date +%Y.%m.%d-%H.%M).$(echo $GITHUB_SHA | cut -c 1-12)"
           echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
       - name: Set changelog
+        id: changelog
         # (Escape newlines see https://github.com/actions/create-release/issues/25)
         run: |
           text="$(git --no-pager log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%h %s")"
-          text="${text//$'%'/%25}"
-          text="${text//$'\n'/%0A}"
-          text="${text//$'\r'/%0D}"
-          echo "CHANGELOG=$text" >> $GITHUB_ENV
+          echo "::set-output name=CHANGELOG::$text"
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
@@ -56,8 +54,8 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           release_name: ${{ env.RELEASE_TAG }}
           body: |
-            Changes in this Release
+            Changes in this release
 
-            ${{ env.CHANGELOG }}
+            ${{ steps.changelog.outputs.CHANGELOG }}"
           draft: false
           prerelease: false
