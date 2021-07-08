@@ -56,6 +56,6 @@ jobs:
           body: |
             Changes in this release
 
-            ${{ steps.changelog.outputs.CHANGELOG }}"
+            ${{ steps.changelog.outputs.CHANGELOG }}
           draft: false
           prerelease: false
