@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics
 import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -8,7 +9,6 @@ import org.apache.kafka.common.errors.*
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
-import org.slf4j.MDC
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
@@ -29,7 +29,9 @@ class KafkaRapid(
 
     private val stringDeserializer = StringDeserializer()
     private val stringSerializer = StringSerializer()
-    private val autoCommit = consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".toLowerCase() } ?: false
+    private val autoCommit =
+        consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".lowercase() }
+            ?: false
     private val consumer = KafkaConsumer(consumerConfig, stringDeserializer, stringDeserializer)
     private val producer = KafkaProducer(producerConfig, stringSerializer, stringSerializer)
 
@@ -110,8 +112,11 @@ class KafkaRapid(
                 currentPositions[TopicPartition(record.topic(), record.partition())] = record.offset() + 1
             }
         } catch (err: Exception) {
-            log.info("due to an error during processing, positions are reset to each next message (after each record that was processed OK):" +
-                    currentPositions.map { "\tpartition=${it.key}, offset=${it.value}" }.joinToString(separator = "\n", prefix = "\n", postfix = "\n"), err)
+            log.info(
+                "due to an error during processing, positions are reset to each next message (after each record that was processed OK):" +
+                        currentPositions.map { "\tpartition=${it.key}, offset=${it.value}" }
+                            .joinToString(separator = "\n", prefix = "\n", postfix = "\n"), err
+            )
             currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
             throw err
         } finally {
@@ -193,6 +198,8 @@ class KafkaRapid(
             log.error(err.message, err)
         }
     }
+
+    internal fun getMetrics() = listOf(KafkaClientMetrics(consumer), KafkaClientMetrics(producer))
 
     companion object {
         private const val Stopped = false

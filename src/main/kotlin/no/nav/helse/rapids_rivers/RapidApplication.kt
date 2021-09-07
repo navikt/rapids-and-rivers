@@ -129,6 +129,7 @@ class RapidApplication internal constructor(
             .preStopHook(this::handlePreStopRequest)
             .liveness(rapid::isRunning)
             .readiness(rapid::isReady)
+            .metrics(rapid.getMetrics())
 
         fun withCollectorRegistry(registry: CollectorRegistry = CollectorRegistry.defaultRegistry) = apply {
             ktor.withCollectorRegistry(registry)
@@ -188,7 +189,7 @@ class RapidApplication internal constructor(
             }
 
             private fun kafkaConfig(env: Map<String, String>, instanceId: String): KafkaConfig {
-                val preferOnPrem = env["KAFKA_PREFER_ON_PREM"]?.let { it.toLowerCase() == "true"} ?: false
+                val preferOnPrem = env["KAFKA_PREFER_ON_PREM"]?.let { it.lowercase() == "true"} ?: false
                 if (preferOnPrem || !gcpConfigAvailable(env)) return onPremConfig(env, instanceId)
                 return gcpConfig(env, instanceId)
             }
@@ -208,7 +209,7 @@ class RapidApplication internal constructor(
                     keystoreLocation = env.getValue("KAFKA_KEYSTORE_PATH"),
                     keystorePassword = env.getValue("KAFKA_CREDSTORE_PASSWORD"),
                     autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
+                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.lowercase() },
                     maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
                     maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
                 )
@@ -226,7 +227,7 @@ class RapidApplication internal constructor(
                     keystoreLocation = null,
                     keystorePassword = null,
                     autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.toLowerCase() },
+                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.lowercase() },
                     maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
                     maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
                 )

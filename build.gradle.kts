@@ -1,23 +1,23 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.5.0"
-val kafkaVersion = "2.4.0"
-val micrometerRegistryPrometheusVersion = "1.6.2"
-val junitJupiterVersion = "5.7.0"
-val jacksonVersion = "2.12.0"
+val ktorVersion = "1.6.3"
+val kafkaVersion = "2.8.0"
+val micrometerRegistryPrometheusVersion = "1.7.3"
+val junitJupiterVersion = "5.7.2"
+val jacksonVersion = "2.12.5"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.4.21"
+    kotlin("jvm") version "1.5.30"
     id("java")
     id("maven-publish")
 }
 
 dependencies {
-    api("ch.qos.logback:logback-classic:1.2.3")
+    api("ch.qos.logback:logback-classic:1.2.5")
     api("net.logstash.logback:logstash-logback-encoder:6.6") {
         exclude("com.fasterxml.jackson.core")
     }
@@ -32,13 +32,13 @@ dependencies {
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
     constraints {
-        api("io.netty:netty-codec-http2:4.1.59.Final") {
+        api("io.netty:netty-codec-http2:4.1.67.Final") {
             because("forrige versjon er rapportert av snyk")
         }
-        api("io.netty:netty-transport-native-epoll:4.1.59.Final") {
+        api("io.netty:netty-transport-native-epoll:4.1.67.Final") {
             because("forrige versjon er rapportert av snyk")
         }
-        api("io.netty:netty-transport-native-kqueue:4.1.59.Final") {
+        api("io.netty:netty-transport-native-kqueue:4.1.67.Final") {
             because("forrige versjon er rapportert av snyk")
         }
     }
@@ -48,22 +48,22 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
     testImplementation("no.nav:kafka-embedded-env:$kafkaVersion")
-    testImplementation("org.awaitility:awaitility:4.0.3")
+    testImplementation("org.awaitility:awaitility:4.1.0")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
 
     withSourcesJar()
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "16"
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "16"
 }
 
 tasks.withType<Test> {
@@ -79,7 +79,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "6.7.1"
+    gradleVersion = "7.2"
 }
 
 repositories {
