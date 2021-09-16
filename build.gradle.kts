@@ -41,6 +41,9 @@ dependencies {
         api("io.netty:netty-transport-native-kqueue:4.1.68.Final") {
             because("forrige versjon er rapportert av snyk")
         }
+        api("io.netty:netty-codec:4.1.68.Final") {
+            because("forrige versjon er rapportert av snyk")
+        }
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
