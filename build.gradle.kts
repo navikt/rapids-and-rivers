@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val ktorVersion = "1.6.3"
 val kafkaVersion = "2.8.0"
 val micrometerRegistryPrometheusVersion = "1.7.3"
-val junitJupiterVersion = "5.7.2"
+val junitJupiterVersion = "5.8.0"
 val jacksonVersion = "2.12.5"
 
 group = "com.github.navikt"
@@ -17,7 +17,7 @@ plugins {
 }
 
 dependencies {
-    api("ch.qos.logback:logback-classic:1.2.5")
+    api("ch.qos.logback:logback-classic:1.2.6")
     api("net.logstash.logback:logstash-logback-encoder:6.6") {
         exclude("com.fasterxml.jackson.core")
     }
@@ -32,13 +32,13 @@ dependencies {
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
     constraints {
-        api("io.netty:netty-codec-http2:4.1.67.Final") {
+        api("io.netty:netty-codec-http2:4.1.68.Final") {
             because("forrige versjon er rapportert av snyk")
         }
-        api("io.netty:netty-transport-native-epoll:4.1.67.Final") {
+        api("io.netty:netty-transport-native-epoll:4.1.68.Final") {
             because("forrige versjon er rapportert av snyk")
         }
-        api("io.netty:netty-transport-native-kqueue:4.1.67.Final") {
+        api("io.netty:netty-transport-native-kqueue:4.1.68.Final") {
             because("forrige versjon er rapportert av snyk")
         }
     }
