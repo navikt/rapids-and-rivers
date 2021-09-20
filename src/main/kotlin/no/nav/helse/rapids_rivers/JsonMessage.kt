@@ -69,6 +69,12 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun rejectValue(key: String, value: String) {
+        val node = node(key)
+        if (!node.isMissingOrNull() && node.isTextual && node.asText() == value) problems.severe("Rejected key $key with value $value")
+        accessor(key)
+    }
+
     fun demandKey(key: String) {
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")

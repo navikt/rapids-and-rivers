@@ -235,6 +235,42 @@ internal class JsonMessageTest {
     }
 
     @Test
+    fun rejectValue() {
+        "{}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    rejectValue("foo", "bar")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": null}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    rejectValue("foo", "bar")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": \"baz\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    rejectValue("foo", "bar")
+                    assertFalse(problems.hasErrors())
+                }
+            }
+        }
+        "{\"foo\": \"bar\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { rejectValue("foo", "bar") }
+                    assertTrue(problems.hasErrors())
+                }
+            }
+        }
+    }
+
+    @Test
     fun demandKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
