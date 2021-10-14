@@ -73,12 +73,12 @@ internal class MyCoolApp(
         }.register(this)
     }
    
-    override fun onError(problems: MessageProblems, context: RapidsConnection.MessageContext) {
+    override fun onError(problems: MessageProblems, context: MessageContext) {
         /* fordi vi bruker demandValue() på event_name kan vi trygt anta at meldingen
            er "my_event", og at det er minst én av de ulike require*() som har feilet */   
     }
 
-    override fun onPacket(packet: JsonMessage, context: RapidsConnection.MessageContext) {
+    override fun onPacket(packet: JsonMessage, context: MessageContext) {
         println(packet["a_required_key"].asText())
         // nested objects can be chained using "."
         println(packet["nested.key"].asText())
