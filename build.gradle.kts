@@ -1,24 +1,24 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.6.3"
-val kafkaVersion = "2.8.0"
-val micrometerRegistryPrometheusVersion = "1.7.3"
-val junitJupiterVersion = "5.8.0"
-val jacksonVersion = "2.12.5"
+val ktorVersion = "1.6.5"
+val kafkaVersion = "2.8.1"
+val micrometerRegistryPrometheusVersion = "1.8.0"
+val junitJupiterVersion = "5.8.1"
+val jacksonVersion = "2.13.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.5.30"
+    kotlin("jvm") version "1.6.0"
     id("java")
     id("maven-publish")
 }
 
 dependencies {
-    api("ch.qos.logback:logback-classic:1.2.6")
-    api("net.logstash.logback:logstash-logback-encoder:6.6") {
+    api("ch.qos.logback:logback-classic:1.2.7")
+    api("net.logstash.logback:logstash-logback-encoder:7.0.1") {
         exclude("com.fasterxml.jackson.core")
     }
     api("io.ktor:ktor-server-netty:$ktorVersion")
@@ -31,27 +31,12 @@ dependencies {
     api("io.ktor:ktor-metrics-micrometer:$ktorVersion")
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
-    constraints {
-        api("io.netty:netty-codec-http2:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-transport-native-epoll:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-transport-native-kqueue:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-codec:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-    }
-
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
     testImplementation("no.nav:kafka-embedded-env:$kafkaVersion")
-    testImplementation("org.awaitility:awaitility:4.1.0")
+    testImplementation("org.awaitility:awaitility:4.1.1")
 }
 
 java {
@@ -82,7 +67,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "7.2"
+    gradleVersion = "7.3"
 }
 
 repositories {
