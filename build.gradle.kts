@@ -1,11 +1,11 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.6.3"
+val ktorVersion = "1.6.6"
 val kafkaVersion = "2.8.0"
-val micrometerRegistryPrometheusVersion = "1.7.3"
-val junitJupiterVersion = "5.8.0"
-val jacksonVersion = "2.12.5"
+val micrometerRegistryPrometheusVersion = "1.8.0"
+val junitJupiterVersion = "5.8.2"
+val jacksonVersion = "2.13.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -17,8 +17,8 @@ plugins {
 }
 
 dependencies {
-    api("ch.qos.logback:logback-classic:1.2.6")
-    api("net.logstash.logback:logstash-logback-encoder:6.6") {
+    api("ch.qos.logback:logback-classic:1.3.0-alpha10")
+    api("net.logstash.logback:logstash-logback-encoder:7.0") {
         exclude("com.fasterxml.jackson.core")
     }
     api("io.ktor:ktor-server-netty:$ktorVersion")
