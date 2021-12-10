@@ -1,10 +1,10 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.6.5"
+val ktorVersion = "1.6.7"
 val kafkaVersion = "2.8.1"
 val micrometerRegistryPrometheusVersion = "1.8.0"
-val junitJupiterVersion = "5.8.1"
+val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.0"
 
 group = "com.github.navikt"
@@ -72,7 +72,6 @@ tasks.withType<Wrapper> {
 
 repositories {
     mavenCentral()
-    maven("https://dl.bintray.com/kotlin/ktor")
     maven("https://packages.confluent.io/maven/")
     maven("https://jitpack.io")
 }
