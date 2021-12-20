@@ -1,14 +1,23 @@
 package no.nav.helse.rapids_rivers
 
-import io.ktor.application.*
+import io.ktor.application.Application
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.application.log
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.metrics.micrometer.MicrometerMetrics
-import io.ktor.response.*
+import io.ktor.response.respond
+import io.ktor.response.respondText
+import io.ktor.response.respondTextWriter
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.server.engine.*
-import io.ktor.server.netty.Netty
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.engine.ApplicationEngineEnvironmentBuilder
+import io.ktor.server.engine.applicationEngineEnvironment
+import io.ktor.server.engine.connector
+import io.ktor.server.engine.embeddedServer
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
@@ -21,11 +30,9 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
-import kotlinx.coroutines.delay
 import org.slf4j.Logger
 
 class KtorBuilder {
-
     private val builder = ApplicationEngineEnvironmentBuilder()
     private var collectorRegistry = CollectorRegistry.defaultRegistry
     private val extraMeterBinders = mutableListOf<MeterBinder>()
@@ -44,7 +51,7 @@ class KtorBuilder {
         builder.module(module)
     }
 
-    fun build(): ApplicationEngine = embeddedServer(Netty, applicationEngineEnvironment {
+    fun build(): ApplicationEngine = embeddedServer(CIO, applicationEngineEnvironment {
         module {
             install(MicrometerMetrics) {
                 registry = PrometheusMeterRegistry(
@@ -95,7 +102,11 @@ class KtorBuilder {
         builder.module {
             routing {
                 get("/isalive") {
-                    if (!isAliveCheck()) return@get call.respondText("NOT ALIVE", ContentType.Text.Plain, HttpStatusCode.ServiceUnavailable)
+                    if (!isAliveCheck()) return@get call.respondText(
+                        "NOT ALIVE",
+                        ContentType.Text.Plain,
+                        HttpStatusCode.ServiceUnavailable
+                    )
                     call.respondText("ALIVE", ContentType.Text.Plain)
                 }
             }
@@ -106,7 +117,11 @@ class KtorBuilder {
         builder.module {
             routing {
                 get("/isready") {
-                    if (!isReadyCheck()) return@get call.respondText("NOT READY", ContentType.Text.Plain, HttpStatusCode.ServiceUnavailable)
+                    if (!isReadyCheck()) return@get call.respondText(
+                        "NOT READY",
+                        ContentType.Text.Plain,
+                        HttpStatusCode.ServiceUnavailable
+                    )
                     call.respondText("READY", ContentType.Text.Plain)
                 }
             }
