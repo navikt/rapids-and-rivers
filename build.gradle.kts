@@ -88,7 +88,6 @@ tasks.withType<Wrapper> {
 repositories {
     mavenCentral()
     maven("https://packages.confluent.io/maven/")
-    maven("https://dl.bintray.com/kotlin/ktor")
     maven("https://jitpack.io")
 }
 
