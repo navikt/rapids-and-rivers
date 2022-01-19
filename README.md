@@ -16,7 +16,7 @@ onStartup-lytterne er ferdige, og vil dermed ikke bli assignet partisjoner av br
 - Rivers kan bruke `demand*()`-funksjoner for å stoppe parsing ved feil. Exception sendes til `onSevere`
 
 Man kan bruke en kombinasjon av `demand*()` og `require*()`. For eksempel om alle meldingene har et `@event_name`, så kan man bruke 
-`demandValue("@event_name", "my_event")` for å avbryte parsing når event-navnet er ikke som forventet. Dersom man har alle andre former
+`demandValue("@event_name", "my_event")` for å avbryte parsing når event-navnet ikke er som forventet. Dersom man har alle andre former
 for validering med `require*()`, så kan man f.eks. logge innholdet i pakken i `onError` i lag med en feilmelding som sier noe sånn som `klarte ikke å parse my_event`.
 Dersom man ikke benytter seg av `demand*()` så er det umulig å vite i `onError()` hvorvidt `@event_name` var forventet verdi eller ikke, og logging vil dermed ende opp med å spamme
 med alle meldinger på rapiden som riveren ikke forstår.
@@ -32,11 +32,11 @@ med alle meldinger på rapiden som riveren ikke forstår.
 
 - Samme kjøreregler som over, bare at du vil få nedetid på api-et
 - Rest-api-delen av appen bør skilles ut som egen app som har readonly-connection mot databasen. Dersom migreringene er 
-bakover-kompatible så kan unngår man nedetid, og man kan migrere en "live" database
+bakover-kompatible så kan man unngå nedetid, og man kan migrere en "live" database
 
 ### Appen min består bare av kafka
 
-- Tut å kjør. Rollout strategy `RollingUpdate` vil fungere helt utmerket
+- Tut og kjør. Rollout strategy `RollingUpdate` vil fungere helt utmerket
 
 ## Quick start 
 
@@ -92,7 +92,7 @@ internal class MyCoolApp(
 - Bootstrap servers angis ved miljøvariabel `KAFKA_BOOTSTRAP_SERVERS`
 - Consumer group angis med miljøvariabel `KAFKA_CONSUMER_GROUP_ID`
 - Rapid topic angis med miljøvariabel `KAFKA_RAPID_TOPIC`
-- Rivers angis med miljøvariabel `KAFKA_EXTRA_TOPIC`(Komma separert liste hvis flere rivers.)
+- Rivers angis med miljøvariabel `KAFKA_EXTRA_TOPIC`(Kommaseparert liste hvis flere rivers.)
 - For å bruke SSL-autentisering (Aiven) må man angi miljøvariablene `KAFKA_KEYSTORE_PATH` og `KAFKA_KEYSTORE_PASSWORD`
 
 Rapids-biblioteket bundler egen `logback.xml` så det trengs ikke spesifiseres i mikrotjenestene.
