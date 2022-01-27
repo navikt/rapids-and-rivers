@@ -12,4 +12,8 @@ internal class KeyMessageContext(
     override fun publish(key: String, message: String) {
         rapidsConnection.publish(key, message)
     }
+
+    override fun rapidName(): String {
+        return rapidsConnection.rapidName()
+    }
 }
