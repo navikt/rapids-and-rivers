@@ -1,6 +1,6 @@
 package no.nav.helse.rapids_rivers
 
-class River(rapidsConnection: RapidsConnection, val name: String = "riverdale") : RapidsConnection.MessageListener {
+class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListener {
     private val validations = mutableListOf<PacketValidation>()
 
     private val listeners = mutableListOf<PacketListener>()
