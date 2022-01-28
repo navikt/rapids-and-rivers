@@ -9,7 +9,7 @@ object Metrics {
 
     val lagHistogram = Histogram.build()
         .name("rapids_rivers_lag_seconds")
-        .help("Lag mellom sending av melding og mottak av melding")
+        .help("Consumer lag mellom sending av melding og mottak av melding")
         .labelNames("rapid")
         .register(registry)
 
