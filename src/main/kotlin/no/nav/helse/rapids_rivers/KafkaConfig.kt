@@ -34,10 +34,10 @@ class KafkaConfig(
     }
 
     private val maxPollRecords = maxRecords ?: DefaultMaxRecords
-    // assuming a "worst case" scenario where it takes 2 seconds to process each message;
-    // then set MAX_POLL_INTERVAL_MS_CONFIG 1 minute above this "worst case" limit so
+    // assuming a "worst case" scenario where it takes 4 seconds to process each message;
+    // then set MAX_POLL_INTERVAL_MS_CONFIG 2 minutes above this "worst case" limit so
     // the broker doesn't think we have died (and revokes partitions)
-    private val maxPollIntervalMs = maxIntervalMs ?: Duration.ofSeconds(60 + maxPollRecords * 2.toLong()).toMillis()
+    private val maxPollIntervalMs = maxIntervalMs ?: Duration.ofSeconds(120 + maxPollRecords * 4.toLong()).toMillis()
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
