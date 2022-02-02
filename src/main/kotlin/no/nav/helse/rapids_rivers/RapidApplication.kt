@@ -64,6 +64,10 @@ class RapidApplication internal constructor(
         rapid.publish(key, message)
     }
 
+    override fun rapidName(): String {
+        return rapid.rapidName()
+    }
+
     private fun shutdownHook() {
         log.info("received shutdown signal, stopping app")
         stop()

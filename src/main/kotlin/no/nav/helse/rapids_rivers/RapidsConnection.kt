@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 interface MessageContext {
     fun publish(message: String)
     fun publish(key: String, message: String)
+    fun rapidName(): String
 }
 
 abstract class RapidsConnection : MessageContext {
