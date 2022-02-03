@@ -1,11 +1,11 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val kafkaVersion = "2.8.1"
-val micrometerRegistryPrometheusVersion = "1.8.0"
+val kafkaVersion = "3.1.0"
+val micrometerRegistryPrometheusVersion = "1.8.2"
 val ktorVersion = "1.6.7"
 val junitJupiterVersion = "5.8.2"
-val jacksonVersion = "2.13.0"
+val jacksonVersion = "2.13.1"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
