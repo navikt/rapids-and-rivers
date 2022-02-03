@@ -33,6 +33,10 @@ class TestRapid : RapidsConnection() {
         messages.add(key to message)
     }
 
+    override fun rapidName(): String {
+        return "testRapid"
+    }
+
     override fun start() {}
     override fun stop() {}
 

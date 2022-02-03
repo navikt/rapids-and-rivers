@@ -40,6 +40,7 @@ internal class RiverTest {
     private val context = object : MessageContext {
         override fun publish(message: String) {}
         override fun publish(key: String, message: String) {}
+        override fun rapidName(): String {return "test"}
     }
 
     private var gotMessage = false
@@ -49,6 +50,9 @@ internal class RiverTest {
         override fun publish(message: String) {}
 
         override fun publish(key: String, message: String) {}
+        override fun rapidName(): String {
+            return "test"
+        }
 
         override fun start() {}
 

@@ -35,13 +35,13 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             val packet = JsonMessage(message, problems)
             validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) {
-                Metrics.onMessageCounter.labels("error").inc()
+                Metrics.onMessageCounter.labels(context.rapidName(), "error").inc()
                 return onError(problems, context)
             }
             onPacket(packet, context)
-            Metrics.onMessageCounter.labels("ok").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), "ok").inc()
         } catch (err: MessageProblems.MessageException) {
-            Metrics.onMessageCounter.labels("severe").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), "severe").inc()
             return onSevere(err, context)
         }
     }
@@ -49,7 +49,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
         packet.interestedIn("@event_name")
         listeners.forEach {
-            Metrics.onPacketHistorgram.labels(packet["@event_name"].textValue() ?: "ukjent").time {
+            Metrics.onPacketHistorgram.labels(context.rapidName(), packet["@event_name"].textValue() ?: "ukjent").time {
                 it.onPacket(packet, context)
             }
         }
