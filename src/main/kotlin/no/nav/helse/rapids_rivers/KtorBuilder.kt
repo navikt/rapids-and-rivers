@@ -12,9 +12,9 @@ import io.ktor.response.respondText
 import io.ktor.response.respondTextWriter
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.ApplicationEngineEnvironmentBuilder
+import io.ktor.server.engine.ApplicationEngineFactory
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
@@ -51,7 +51,7 @@ class KtorBuilder {
         builder.module(module)
     }
 
-    fun build(): ApplicationEngine = embeddedServer(CIO, applicationEngineEnvironment {
+    fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration> build(factory: ApplicationEngineFactory<TEngine, TConfiguration>): ApplicationEngine = embeddedServer(factory, applicationEngineEnvironment {
         module {
             install(MicrometerMetrics) {
                 registry = PrometheusMeterRegistry(
