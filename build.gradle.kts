@@ -1,9 +1,9 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.6.6"
-val kafkaVersion = "2.8.0"
-val micrometerRegistryPrometheusVersion = "1.8.0"
+val ktorVersion = "1.6.7"
+val kafkaVersion = "2.8.1"
+val micrometerRegistryPrometheusVersion = "1.8.1"
 val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.0"
 
@@ -18,7 +18,7 @@ plugins {
 
 dependencies {
     api("ch.qos.logback:logback-classic:1.3.0-alpha10")
-    api("net.logstash.logback:logstash-logback-encoder:7.0") {
+    api("net.logstash.logback:logstash-logback-encoder:7.0.1") {
         exclude("com.fasterxml.jackson.core")
     }
     api("io.ktor:ktor-server-cio:$ktorVersion")
@@ -36,7 +36,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
     testImplementation("no.nav:kafka-embedded-env:$kafkaVersion")
-    testImplementation("org.awaitility:awaitility:4.1.0")
+    testImplementation("org.awaitility:awaitility:4.1.1")
 }
 
 java {
