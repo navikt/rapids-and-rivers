@@ -21,7 +21,7 @@ dependencies {
     api("net.logstash.logback:logstash-logback-encoder:7.0") {
         exclude("com.fasterxml.jackson.core")
     }
-    api("io.ktor:ktor-server-netty:$ktorVersion")
+    api("io.ktor:ktor-server-cio:$ktorVersion")
 
     api("org.apache.kafka:kafka-clients:$kafkaVersion")
 
@@ -30,21 +30,6 @@ dependencies {
 
     api("io.ktor:ktor-metrics-micrometer:$ktorVersion")
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
-
-    constraints {
-        api("io.netty:netty-codec-http2:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-transport-native-epoll:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-transport-native-kqueue:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-        api("io.netty:netty-codec:4.1.68.Final") {
-            because("forrige versjon er rapportert av snyk")
-        }
-    }
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")

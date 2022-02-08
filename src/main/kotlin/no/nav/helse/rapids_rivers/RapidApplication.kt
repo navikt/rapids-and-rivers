@@ -1,7 +1,8 @@
 package no.nav.helse.rapids_rivers
 
 import io.ktor.application.Application
-import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.cio.CIO
+import io.ktor.server.engine.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
@@ -115,7 +116,7 @@ class RapidApplication internal constructor(
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
-        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure)
+        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure, CIO)
     }
 
     class Builder(private val config: RapidApplicationConfig) {
@@ -144,7 +145,11 @@ class RapidApplication internal constructor(
         }
 
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
-            val app = ktor.build()
+            return build(configure, CIO)
+        }
+
+        fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration> build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, factory: ApplicationEngineFactory<TEngine, TConfiguration>): RapidsConnection {
+            val app = ktor.build(factory)
             configure(app, rapid)
             return RapidApplication(app, rapid, config.appName, config.instanceId, this::onKtorStartup, this::onKtorShutdown)
         }
