@@ -105,6 +105,22 @@ internal class JsonMessageTest {
     }
 
     @Test
+    fun `rejected booolean`() {
+        assertThrows<MessageProblems.MessageException> { message("{\"key\": true}").apply { rejectValue("key", true) } }
+        assertDoesNotThrow { message("{\"key\": false}").apply { rejectValue("key", true) } }
+        assertDoesNotThrow { message("{\"key\": null}").apply { rejectValue("key", true) } }
+        assertDoesNotThrow { message("{\"otherkey\": \"foo\"}").apply { rejectValue("key", true) } }
+    }
+
+    @Test
+    fun `rejected value`() {
+        assertThrows<MessageProblems.MessageException> { message("{\"key\": \"bar\"}").apply { rejectValues("key", listOf("bar")) } }
+        assertDoesNotThrow { message("{\"key\": null}").apply { rejectValues("key", listOf("bar")) } }
+        assertDoesNotThrow { message("{\"otherkey\": \"foo\"}").apply { rejectValues("key", listOf("bar")) } }
+        assertDoesNotThrow { message("{\"key\": \"foo\"}").apply { rejectValues("key", listOf("bar")) } }
+    }
+
+    @Test
     fun `valid json`() {
         val problems = MessageProblems(ValidJson)
         JsonMessage(ValidJson, problems)
@@ -712,6 +728,20 @@ internal class JsonMessageTest {
         assertFalse(problems.hasErrors())
         message("{\"other\": \"baz\", \"key2\": \"foo\"}").apply { forbid("key1", "key2") }
         assertTrue(problems.hasErrors())
+    }
+
+    @Test
+    fun `forbidden values`() {
+        message("{\"key\": \"foo\"}").apply { forbidValues("key", listOf("bar")) }
+        assertFalse(problems.hasErrors())
+        message("{\"key\": \"foo\"}").apply { forbidValues("key", listOf("foo")) }
+        assertTrue(problems.hasErrors())
+        message("{\"key\": \"bar\"}").apply { forbidValues("key", listOf("foo", "bar")) }
+        assertTrue(problems.hasErrors())
+        message("{}").apply { forbidValues("key", listOf("foo")) }
+        assertFalse(problems.hasErrors())
+        message("{\"key\": null}").apply { forbidValues("key", listOf("foo")) }
+        assertFalse(problems.hasErrors())
     }
 
     @Test

@@ -75,6 +75,18 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun rejectValue(key: String, value: Boolean) {
+        val node = node(key)
+        if (!node.isMissingOrNull() && node.isBoolean && node.asBoolean() == value) problems.severe("Rejected key $key with value $value")
+        accessor(key)
+    }
+
+    fun rejectValues(key: String, values: List<String>) {
+        val node = node(key)
+        if (!node.isMissingOrNull() && node.asText() in values) problems.severe("Rejected key $key with value ${node.asText()}")
+        accessor(key)
+    }
+
     fun demandKey(key: String) {
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")
@@ -211,6 +223,12 @@ open class JsonMessage(
 
     fun forbid(vararg key: String) {
         key.forEach { forbid(it) }
+    }
+
+    fun forbidValues(key: String, values: List<String>) {
+        val node = node(key)
+        if (!node.isMissingOrNull() && node.isTextual && node.asText() in values) return problems.error("Required $key is one of $values")
+        accessor(key)
     }
 
     fun interestedIn(vararg key: String) {
