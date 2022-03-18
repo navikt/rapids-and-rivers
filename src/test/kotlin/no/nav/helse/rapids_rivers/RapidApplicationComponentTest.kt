@@ -211,7 +211,7 @@ internal class RapidApplicationComponentTest {
 
     private fun waitForEvent(event: String): JsonNode? {
         return await("wait until $event")
-            .atMost(40, SECONDS)
+            .atMost(60, SECONDS)
             .until({
                 messages.map { objectMapper.readTree(it) }
                     .firstOrNull { it.path("@event_name").asText() == event }
