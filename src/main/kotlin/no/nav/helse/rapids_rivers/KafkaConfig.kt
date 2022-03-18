@@ -44,7 +44,10 @@ class KafkaConfig(
     internal fun consumerConfig() = Properties().apply {
         putAll(kafkaBaseConfig())
         put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId)
-        clientId?.also { put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-$it") }
+        clientId?.also {
+            put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-$it")
+            put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, it)
+        }
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetResetConfig ?: "latest")
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxPollRecords")
