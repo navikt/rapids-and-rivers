@@ -2,10 +2,10 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.6.7"
-val kafkaVersion = "2.8.1"
+val kafkaVersion = "3.1.0"
 val micrometerRegistryPrometheusVersion = "1.8.1"
 val junitJupiterVersion = "5.8.2"
-val jacksonVersion = "2.13.0"
+val jacksonVersion = "2.13.2"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -35,7 +35,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
-    testImplementation("no.nav:kafka-embedded-env:$kafkaVersion")
+    testImplementation("com.github.navikt:kafka-embedded-env:kafka310-SNAPSHOT")
     testImplementation("org.awaitility:awaitility:4.1.1")
 }
 
@@ -71,9 +71,9 @@ tasks.withType<Wrapper> {
 }
 
 repositories {
-    mavenCentral()
-    maven("https://packages.confluent.io/maven/")
     maven("https://jitpack.io")
+    maven("https://packages.confluent.io/maven/")
+    mavenCentral()
 }
 
 val githubUser: String? by project

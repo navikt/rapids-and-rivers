@@ -52,7 +52,6 @@ class KafkaConfig(
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxPollRecords")
         put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "$maxPollIntervalMs")
-        put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 45000)
     }
 
     internal fun producerConfig() = Properties().apply {
