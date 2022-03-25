@@ -8,6 +8,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.*
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.intellij.lang.annotations.Language
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant.now
@@ -125,7 +126,7 @@ class KafkaRapid(
             currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
             throw err
         } finally {
-            consumer.commitSync()
+            consumer.commitSync(currentPositions.mapValues { (_, offset) -> offsetMetadata(offset) })
         }
     }
 
@@ -183,7 +184,14 @@ class KafkaRapid(
         if (autoCommit) return
         val offset = consumer.position(this)
         log.info("committing offset offset=$offset for partition=$this")
-        consumer.commitSync(mapOf(this to OffsetAndMetadata(offset)))
+        consumer.commitSync(mapOf(this to offsetMetadata(offset)))
+    }
+
+    private fun offsetMetadata(offset: Long): OffsetAndMetadata {
+        val clientId = consumer.groupMetadata().groupInstanceId().map { "\"$it\"" }.orElse("null")
+        @Language("JSON")
+        val metadata = """{"time": "${LocalDateTime.now()}","groupInstanceId": $clientId}"""
+        return OffsetAndMetadata(offset, metadata)
     }
 
     private fun closeResources(lastException: Exception?) {

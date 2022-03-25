@@ -9,10 +9,12 @@ import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -21,7 +23,9 @@ import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.time.Duration
+import java.time.LocalDateTime
 import java.util.*
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit.SECONDS
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -157,10 +161,11 @@ internal class RapidIntegrationTest {
                 ?.partitionsToOffsetAndMetadata()
                 ?.get()
                 ?.getValue(TopicPartition(testTopic, 0))
-                ?.offset()
                 ?: fail { "was not able to fetch committed offset for consumer $consumerId" }
-
-        assertEquals(expectedOffset, actualOffset)
+        val metadata = actualOffset.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
+        assertEquals(expectedOffset, actualOffset.offset())
+        assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
     }
 
     private fun ensureRapidIsActive() {
@@ -182,7 +187,18 @@ internal class RapidIntegrationTest {
         val value = "{ \"@event\": \"$eventName\" }"
 
         testRiver(eventName, serviceId)
-        waitForReply(testTopic, serviceId, eventName, value)
+        val recordMetadata = waitForReply(testTopic, serviceId, eventName, value)
+
+        val offsets = embeddedKafkaEnvironment.adminClient
+            ?.listConsumerGroupOffsets(consumerId)
+            ?.partitionsToOffsetAndMetadata()
+            ?.get()
+            ?: fail { "was not able to fetch committed offset for consumer $consumerId" }
+        val actualOffset = offsets.getValue(TopicPartition(recordMetadata.topic(), recordMetadata.partition()))
+        val metadata = actualOffset.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
+        assertTrue(actualOffset.offset() >= recordMetadata.offset())
+        assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
     }
 
     @Test
@@ -253,13 +269,14 @@ internal class RapidIntegrationTest {
         }
     }
 
-    private fun waitForReply(topic: String, serviceId: String, eventName: String, event: String) {
+    private fun waitForReply(topic: String, serviceId: String, eventName: String, event: String): RecordMetadata {
+        var future: Future<RecordMetadata>? = null
         val sentMessages = mutableListOf<String>()
         await("wait until we get a reply")
             .atMost(20, SECONDS)
             .until {
                 val key = UUID.randomUUID().toString()
-                kafkaProducer.send(ProducerRecord(topic, key, event))
+                future = kafkaProducer.send(ProducerRecord(topic, key, event))
                 sentMessages.add(key)
 
                 kafkaConsumer.poll(Duration.ZERO).forEach {
@@ -271,6 +288,7 @@ internal class RapidIntegrationTest {
                 }
                 return@until false
             }
+        return requireNotNull(future).get()
     }
 
     private fun producerProperties() =
