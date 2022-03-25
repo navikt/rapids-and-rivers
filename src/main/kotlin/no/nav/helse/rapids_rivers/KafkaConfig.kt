@@ -57,7 +57,7 @@ class KafkaConfig(
     internal fun producerConfig() = Properties().apply {
         putAll(kafkaBaseConfig())
         clientId?.also { put(ProducerConfig.CLIENT_ID_CONFIG, "producer-$it") }
-        put(ProducerConfig.ACKS_CONFIG, "1")
+        put(ProducerConfig.ACKS_CONFIG, "all")
         put(ProducerConfig.LINGER_MS_CONFIG, "0")
         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
     }
