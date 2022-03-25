@@ -35,13 +35,10 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             val packet = JsonMessage(message, problems)
             validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) {
-                Metrics.onMessageCounter.labels(context.rapidName(), "error").inc()
                 return onError(problems, context)
             }
             onPacket(packet, context)
-            Metrics.onMessageCounter.labels(context.rapidName(), "ok").inc()
         } catch (err: MessageProblems.MessageException) {
-            Metrics.onMessageCounter.labels(context.rapidName(), "severe").inc()
             return onSevere(err, context)
         }
     }
@@ -49,18 +46,33 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
         packet.interestedIn("@event_name")
         listeners.forEach {
-            Metrics.onPacketHistorgram.labels(context.rapidName(), packet["@event_name"].textValue() ?: "ukjent").time {
+            val riverName = it.javaClass.simpleName
+            val eventName = packet["@event_name"].textValue() ?: "ukjent"
+            Metrics.onPacketHistorgram.labels(
+                context.rapidName(),
+                riverName,
+                eventName
+            ).time {
                 it.onPacket(packet, context)
             }
+            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "ok").inc()
         }
     }
 
     private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
-        listeners.forEach { it.onSevere(error, context) }
+        listeners.forEach {
+            val riverName = it.javaClass.simpleName
+            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "severe").inc()
+            it.onSevere(error, context)
+        }
     }
 
     private fun onError(problems: MessageProblems, context: MessageContext) {
-        listeners.forEach { it.onError(problems, context) }
+        listeners.forEach {
+            val riverName = it.javaClass.simpleName
+            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "error").inc()
+            it.onError(problems, context)
+        }
     }
 
     fun interface PacketValidation {
@@ -87,6 +99,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     ) : PacketListener {
         constructor(packetHandler: PacketValidationSuccessListener) : this(packetHandler, { _, _ -> })
         constructor(errorHandler: PacketValidationErrorListener) : this({ _, _ -> }, errorHandler)
+
         override fun onError(problems: MessageProblems, context: MessageContext) {
             errorHandler.onError(problems, context)
         }
