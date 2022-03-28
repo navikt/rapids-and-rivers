@@ -131,7 +131,7 @@ class KafkaRapid(
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
         withMDC(recordDiganostics(record)) {
-            val context = KeyMessageContext(this, record.key(), record.value())
+            val context = KeyMessageContext(this, record.key())
             notifyMessage(record.value(), context)
         }
     }

@@ -1,8 +1,11 @@
 package no.nav.helse.rapids_rivers
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.*
-import no.nav.helse.rapids_rivers.JsonMessage.Companion.objectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -15,6 +18,10 @@ import java.util.*
 
 internal class JsonMessageTest {
 
+    private val objectMapper = jacksonObjectMapper()
+        .registerModule(JavaTimeModule())
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     private val ValidJson = "{\"foo\": \"bar\"}"
     private val InvalidJson = "foo"
 
@@ -45,12 +52,19 @@ internal class JsonMessageTest {
     }
 
     @Test
-    fun `cant overwrite id`() {
+    fun `does not overwrite id`() {
         val customId = UUID.randomUUID()
         val msg = JsonMessage.newMessage(mapOf("@id" to customId))
         val node = objectMapper.readTree(msg.toJson())
-        assertNotEquals(customId, msg.id)
+        assertEquals(customId, msg.id)
         assertEquals(msg.id.toString(), node.path("@id").asText())
+    }
+
+    @Test
+    fun `sets id if missing`() {
+        val msg = JsonMessage.newMessage()
+        val node = objectMapper.readTree(msg.toJson())
+        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
     }
 
     @Test

@@ -171,7 +171,7 @@ internal class RapidApplicationComponentTest {
     fun `metric values`() {
         withRapid(collectorRegistry = CollectorRegistry.defaultRegistry) { rapid ->
             waitForEvent("application_ready")
-            rapid.publish("""{"@event_name":"ping","@id":"1","ping_time":"${LocalDateTime.now()}"}""")
+            rapid.publish("""{"@event_name":"ping","@id":"${UUID.randomUUID()}","ping_time":"${LocalDateTime.now()}"}""")
             waitForEvent("ping")
             await("wait until metrics are available")
                 .atMost(40, SECONDS)

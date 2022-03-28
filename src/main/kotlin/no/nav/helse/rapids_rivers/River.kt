@@ -37,7 +37,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             if (problems.hasErrors()) {
                 return onError(problems, context)
             }
-            onPacket(packet, context)
+            onPacket(packet, JsonMessageContext(context, packet))
         } catch (err: MessageProblems.MessageException) {
             return onSevere(err, context)
         }

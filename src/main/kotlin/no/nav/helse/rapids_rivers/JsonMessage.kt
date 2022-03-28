@@ -20,10 +20,10 @@ open class JsonMessage(
     originalMessage: String,
     private val problems: MessageProblems
 ) {
-    val id: UUID = UUID.randomUUID()
+    val id: UUID
 
     companion object {
-        internal val objectMapper = jacksonObjectMapper()
+        private val objectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -31,6 +31,8 @@ open class JsonMessage(
         private const val nestedKeySeparator = '.'
         private const val IdKey = "@id"
         private const val OpprettetKey = "@opprettet"
+        private const val EventNameKey = "@event_name"
+        private const val NeedKey = "@behov"
         private const val ReadCountKey = "system_read_count"
         private const val ParticipatingServicesKey = "system_participating_services"
 
@@ -39,11 +41,36 @@ open class JsonMessage(
 
         fun newMessage(map: Map<String, Any> = emptyMap()) =
             objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it)) }
-        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap()) = newMessage(mapOf("@event_name" to eventName) + map)
+        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap()) = newMessage(mapOf(EventNameKey to eventName) + map)
         fun newNeed(behov: Collection<String>, map: Map<String, Any> = emptyMap()) = newMessage("behov", mapOf(
             "@behovId" to UUID.randomUUID(),
-            "@behov" to behov
+            NeedKey to behov
         ) + map)
+
+        internal fun populateStandardFields(originalMessage: JsonMessage, message: String): String {
+            return (objectMapper.readTree(message) as ObjectNode).also {
+                it.replace("@forårsaket_av", objectMapper.valueToTree(originalMessage.tracing))
+                if (it.path("@id").isMissingOrNull() || it.path("@id").asText() == originalMessage.id.toString()) {
+                    val id = UUID.randomUUID()
+                    val opprettet = LocalDateTime.now()
+                    it.put(IdKey, "$id")
+                    it.put(OpprettetKey, "$opprettet")
+                    initializeOrSetParticipatingServices(it, id, opprettet)
+                }
+            }.toString()
+        }
+
+        private fun initializeOrSetParticipatingServices(node: JsonNode, id: UUID, opprettet: LocalDateTime) {
+            val entry = mutableMapOf(
+                "id" to "$id",
+                "time" to "$opprettet"
+            ).apply {
+                compute("service") { _, _ -> serviceName }
+                compute("instance") { _, _ -> serviceHostname }
+            }
+            if (node.path(ParticipatingServicesKey).isMissingOrNull()) (node as ObjectNode).putArray(ParticipatingServicesKey).add(objectMapper.valueToTree<ObjectNode>(entry))
+            else (node.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
+        }
     }
 
     private val json: JsonNode
@@ -55,22 +82,23 @@ open class JsonMessage(
         } catch (err: JsonParseException) {
             problems.severe("Invalid JSON per Jackson library: ${err.message}")
         }
-
-        set(IdKey, id)
-        val opprettet = LocalDateTime.now()
-        set(OpprettetKey, opprettet)
-        set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)
-
-        if (serviceName != null && serviceHostname != null) {
-            val entry = mapOf(
-                "service" to serviceName,
-                "instance" to serviceHostname,
-                "time" to opprettet
-            )
-            if (json.path(ParticipatingServicesKey).isMissingOrNull()) set(ParticipatingServicesKey, listOf(entry))
-            else (json.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
+        id = json.path("@id").takeUnless { it.isMissingOrNull() }?.asText()?.let { UUID.fromString(it) } ?: UUID.randomUUID().also {
+            set("@id", it)
         }
+        val opprettet = LocalDateTime.now()
+        if (!json.hasNonNull("@opprettet")) set(OpprettetKey, opprettet)
+        set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)
+        initializeOrSetParticipatingServices(json, id, opprettet)
     }
+
+    private val tracing =
+        mutableMapOf<String, Any>(
+            "id" to json.path(IdKey).asText()
+        ).apply {
+            compute("opprettet") { _, _ -> json.path(OpprettetKey).asText().takeUnless { it.isBlank() } }
+            compute("event_name") { _, _ -> json.path(EventNameKey).asText().takeUnless { it.isBlank() } }
+            compute("behov") { _, _ -> json.path(NeedKey).map(JsonNode::asText).takeUnless(List<*>::isEmpty) }
+        }.toMap()
 
     fun rejectKey(vararg key: String) {
         key.forEach { rejectKey(it) }
