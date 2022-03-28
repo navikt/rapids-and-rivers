@@ -105,11 +105,10 @@ class RapidApplication internal constructor(
 
     private fun applicationEvent(event: String): String? {
         if (appName == null) return null
-        val packet = JsonMessage("{}", MessageProblems("{}"))
-        packet["@event_name"] = event
-        packet["@opprettet"] = LocalDateTime.now()
-        packet["app_name"] = appName
-        packet["instance_id"] = instanceId
+        val packet = JsonMessage.newMessage(event, mapOf(
+            "app_name" to appName,
+            "instance_id" to instanceId
+        ))
         return packet.toJson()
     }
 
