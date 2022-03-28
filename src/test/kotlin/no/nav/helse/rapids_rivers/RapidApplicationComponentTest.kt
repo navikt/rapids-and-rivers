@@ -19,8 +19,7 @@ import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -200,11 +199,16 @@ internal class RapidApplicationComponentTest {
             waitForEvent("application_ready")
 
             val pingId = UUID.randomUUID().toString()
-            rapid.publish("""{"@event_name":"ping","@id":"$pingId","ping_time":"${LocalDateTime.now()}"}""")
+            val pingTime = LocalDateTime.now()
+            rapid.publish("""{"@event_name":"ping","@id":"$pingId","ping_time":"$pingTime"}""")
 
             val pong = requireNotNull(waitForEvent("pong")) { "did not receive pong before timeout" }
-            assertEquals(pingId, pong["@id"].asText())
+            assertNotEquals(pingId, pong["@id"].asText())
+            assertEquals(pingTime.toString(), pong["ping_time"].asText())
+            assertDoesNotThrow { LocalDateTime.parse(pong["pong_time"].asText()) }
             assertEquals("app-name", pong["app_name"].asText())
+            assertEquals(pingId, pong.path("@forårsaket_av").path("id").asText())
+            assertEquals("ping", pong.path("@forårsaket_av").path("event_name").asText())
             assertTrue(pong.hasNonNull("instance_id"))
         }
     }

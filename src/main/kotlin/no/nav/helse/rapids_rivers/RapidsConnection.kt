@@ -27,7 +27,7 @@ abstract class RapidsConnection : MessageContext {
     }
 
     fun queueReplayMessage(key: String, message: String) {
-        val context = KeyMessageContext(this, key)
+        val context = KeyMessageContext(this, key, message)
         replayMessages.add(message to context)
     }
 

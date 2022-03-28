@@ -13,6 +13,7 @@ import java.net.InetAddress
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import java.util.*
 
 // Understands a specific JSON-formatted message
 open class JsonMessage(
@@ -20,12 +21,14 @@ open class JsonMessage(
     private val problems: MessageProblems
 ) {
     companion object {
-        private val objectMapper = jacksonObjectMapper()
+        internal val objectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
         private const val nestedKeySeparator = '.'
+        private const val IdKey = "@id"
+        private const val OpprettetKey = "@opprettet"
         private const val ReadCountKey = "system_read_count"
         private const val ParticipatingServicesKey = "system_participating_services"
 
@@ -46,13 +49,16 @@ open class JsonMessage(
             problems.severe("Invalid JSON per Jackson library: ${err.message}")
         }
 
+        set(IdKey, UUID.randomUUID())
+        val opprettet = LocalDateTime.now()
+        set(OpprettetKey, opprettet)
         set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)
 
         if (serviceName != null && serviceHostname != null) {
             val entry = mapOf(
                 "service" to serviceName,
                 "instance" to serviceHostname,
-                "time" to LocalDateTime.now()
+                "time" to opprettet
             )
             if (json.path(ParticipatingServicesKey).isMissingOrNull()) set(ParticipatingServicesKey, listOf(entry))
             else (json.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
