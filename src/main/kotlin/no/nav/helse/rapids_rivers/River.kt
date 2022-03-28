@@ -46,31 +46,28 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
         packet.interestedIn("@event_name")
         listeners.forEach {
-            val riverName = it.javaClass.simpleName
             val eventName = packet["@event_name"].textValue() ?: "ukjent"
             Metrics.onPacketHistorgram.labels(
                 context.rapidName(),
-                riverName,
+                it.name(),
                 eventName
             ).time {
                 it.onPacket(packet, context)
             }
-            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "ok").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "ok").inc()
         }
     }
 
     private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
         listeners.forEach {
-            val riverName = it.javaClass.simpleName
-            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "severe").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "severe").inc()
             it.onSevere(error, context)
         }
     }
 
     private fun onError(problems: MessageProblems, context: MessageContext) {
         listeners.forEach {
-            val riverName = it.javaClass.simpleName
-            Metrics.onMessageCounter.labels(context.rapidName(), riverName, "error").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "error").inc()
             it.onError(problems, context)
         }
     }
@@ -91,6 +88,8 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         override fun onError(problems: MessageProblems, context: MessageContext) {}
 
         fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
+
+        fun name(): String = this::class.simpleName ?: "ukjent"
     }
 
     private class DelegatedPacketListener private constructor(
@@ -108,4 +107,5 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             packetHandler.onPacket(packet, context)
         }
     }
+
 }
