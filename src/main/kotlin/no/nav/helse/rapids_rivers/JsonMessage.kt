@@ -20,6 +20,8 @@ open class JsonMessage(
     originalMessage: String,
     private val problems: MessageProblems
 ) {
+    val id: UUID = UUID.randomUUID()
+
     companion object {
         internal val objectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
@@ -37,6 +39,11 @@ open class JsonMessage(
 
         fun newMessage(map: Map<String, Any> = emptyMap()) =
             objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it)) }
+        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap()) = newMessage(mapOf("@event_name" to eventName) + map)
+        fun newNeed(behov: Collection<String>, map: Map<String, Any> = emptyMap()) = newMessage("behov", mapOf(
+            "@behovId" to UUID.randomUUID(),
+            "@behov" to behov
+        ) + map)
     }
 
     private val json: JsonNode
@@ -49,7 +56,7 @@ open class JsonMessage(
             problems.severe("Invalid JSON per Jackson library: ${err.message}")
         }
 
-        set(IdKey, UUID.randomUUID())
+        set(IdKey, id)
         val opprettet = LocalDateTime.now()
         set(OpprettetKey, opprettet)
         set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)

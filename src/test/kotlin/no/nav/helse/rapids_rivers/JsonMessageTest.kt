@@ -2,6 +2,7 @@ package no.nav.helse.rapids_rivers
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.*
+import no.nav.helse.rapids_rivers.JsonMessage.Companion.objectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -10,6 +11,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeParseException
+import java.util.*
 
 internal class JsonMessageTest {
 
@@ -18,10 +20,37 @@ internal class JsonMessageTest {
 
     @Test
     fun `create message from map`() {
-        assertEquals(
-            "bar", JsonMessage.newMessage(mapOf("foo" to "bar"))
-                .apply { requireKey("foo") }["foo"].asText()
-        )
+        val node = objectMapper.readTree(JsonMessage.newMessage(mapOf("foo" to "bar")).toJson())
+        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(node.path("@opprettet").asText()) }
+        assertEquals("bar", node.path("foo").asText())
+    }
+
+    @Test
+    fun `create need from map`() {
+        val behovsliste = listOf("behov1", "behov2")
+        val node = objectMapper.readTree(JsonMessage.newNeed(behovsliste, mapOf("foo" to "bar")).toJson())
+        assertEquals(behovsliste, node.path("@behov").map(JsonNode::asText))
+        assertDoesNotThrow { UUID.fromString(node.path("@behovId").asText()) }
+        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(node.path("@opprettet").asText()) }
+        assertEquals("behov", node.path("@event_name").asText())
+        assertEquals("bar", node.path("foo").asText())
+    }
+
+    @Test
+    fun `overwrite default values`() {
+        val node = objectMapper.readTree(JsonMessage.newNeed(listOf("behov1"), mapOf("@event_name" to "other_name")).toJson())
+        assertEquals("other_name", node.path("@event_name").asText())
+    }
+
+    @Test
+    fun `cant overwrite id`() {
+        val customId = UUID.randomUUID()
+        val msg = JsonMessage.newMessage(mapOf("@id" to customId))
+        val node = objectMapper.readTree(msg.toJson())
+        assertNotEquals(customId, msg.id)
+        assertEquals(msg.id.toString(), node.path("@id").asText())
     }
 
     @Test
