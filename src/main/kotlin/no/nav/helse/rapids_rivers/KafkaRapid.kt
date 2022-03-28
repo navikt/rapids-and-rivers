@@ -11,7 +11,6 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.intellij.lang.annotations.Language
 import org.slf4j.LoggerFactory
 import java.time.Duration
-import java.time.Instant.now
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -131,8 +130,6 @@ class KafkaRapid(
     }
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
-        Metrics.lagHistogram.labels(rapidTopic)
-                .observe((now().minusMillis(record.timestamp())).toEpochMilli().toDouble())
         withMDC(recordDiganostics(record)) {
             val context = KeyMessageContext(this, record.key())
             notifyMessage(record.value(), context)

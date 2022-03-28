@@ -35,13 +35,10 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             val packet = JsonMessage(message, problems)
             validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) {
-                Metrics.onMessageCounter.labels(context.rapidName(), "error").inc()
                 return onError(problems, context)
             }
             onPacket(packet, context)
-            Metrics.onMessageCounter.labels(context.rapidName(), "ok").inc()
         } catch (err: MessageProblems.MessageException) {
-            Metrics.onMessageCounter.labels(context.rapidName(), "severe").inc()
             return onSevere(err, context)
         }
     }
@@ -49,18 +46,30 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
         packet.interestedIn("@event_name")
         listeners.forEach {
-            Metrics.onPacketHistorgram.labels(context.rapidName(), packet["@event_name"].textValue() ?: "ukjent").time {
+            val eventName = packet["@event_name"].textValue() ?: "ukjent"
+            Metrics.onPacketHistorgram.labels(
+                context.rapidName(),
+                it.name(),
+                eventName
+            ).time {
                 it.onPacket(packet, context)
             }
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "ok").inc()
         }
     }
 
     private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
-        listeners.forEach { it.onSevere(error, context) }
+        listeners.forEach {
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "severe").inc()
+            it.onSevere(error, context)
+        }
     }
 
     private fun onError(problems: MessageProblems, context: MessageContext) {
-        listeners.forEach { it.onError(problems, context) }
+        listeners.forEach {
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "error").inc()
+            it.onError(problems, context)
+        }
     }
 
     fun interface PacketValidation {
@@ -79,6 +88,8 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
         override fun onError(problems: MessageProblems, context: MessageContext) {}
 
         fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
+
+        fun name(): String = this::class.simpleName ?: "ukjent"
     }
 
     private class DelegatedPacketListener private constructor(
@@ -87,6 +98,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     ) : PacketListener {
         constructor(packetHandler: PacketValidationSuccessListener) : this(packetHandler, { _, _ -> })
         constructor(errorHandler: PacketValidationErrorListener) : this({ _, _ -> }, errorHandler)
+
         override fun onError(problems: MessageProblems, context: MessageContext) {
             errorHandler.onError(problems, context)
         }
@@ -95,4 +107,5 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
             packetHandler.onPacket(packet, context)
         }
     }
+
 }
