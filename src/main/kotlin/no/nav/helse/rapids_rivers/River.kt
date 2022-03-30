@@ -1,5 +1,7 @@
 package no.nav.helse.rapids_rivers
 
+import no.nav.helse.rapids_rivers.River.PacketListener.Companion.Name
+
 class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListener {
     private val validations = mutableListOf<PacketValidation>()
 
@@ -85,11 +87,14 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     }
 
     interface PacketListener : PacketValidationErrorListener, PacketValidationSuccessListener {
+        companion object {
+            fun Name(obj: Any) = obj::class.simpleName ?: "ukjent"
+        }
         override fun onError(problems: MessageProblems, context: MessageContext) {}
 
         fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
 
-        fun name(): String = this::class.simpleName ?: "ukjent"
+        fun name(): String = Name(this)
     }
 
     private class DelegatedPacketListener private constructor(
@@ -98,6 +103,8 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     ) : PacketListener {
         constructor(packetHandler: PacketValidationSuccessListener) : this(packetHandler, { _, _ -> })
         constructor(errorHandler: PacketValidationErrorListener) : this({ _, _ -> }, errorHandler)
+
+        override fun name() = Name(packetHandler)
 
         override fun onError(problems: MessageProblems, context: MessageContext) {
             errorHandler.onError(problems, context)
