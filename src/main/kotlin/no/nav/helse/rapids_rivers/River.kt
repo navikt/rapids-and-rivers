@@ -1,8 +1,16 @@
 package no.nav.helse.rapids_rivers
 
 import no.nav.helse.rapids_rivers.River.PacketListener.Companion.Name
+import java.util.*
 
-class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListener {
+fun interface RandomIdGenerator {
+    companion object {
+        internal val Default = RandomIdGenerator { UUID.randomUUID().toString() }
+    }
+    fun generateId(): String
+}
+
+class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: RandomIdGenerator = RandomIdGenerator.Default) : RapidsConnection.MessageListener {
     private val validations = mutableListOf<PacketValidation>()
 
     private val listeners = mutableListOf<PacketListener>()
@@ -34,7 +42,7 @@ class River(rapidsConnection: RapidsConnection) : RapidsConnection.MessageListen
     override fun onMessage(message: String, context: MessageContext) {
         val problems = MessageProblems(message)
         try {
-            val packet = JsonMessage(message, problems)
+            val packet = JsonMessage(message, problems, randomIdGenerator)
             validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) {
                 return onError(problems, context)

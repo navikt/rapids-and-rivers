@@ -18,9 +18,11 @@ import java.util.*
 // Understands a specific JSON-formatted message
 open class JsonMessage(
     originalMessage: String,
-    private val problems: MessageProblems
+    private val problems: MessageProblems,
+    randomIdGenerator: RandomIdGenerator? = null
 ) {
-    val id: UUID
+    private val idGenerator = randomIdGenerator ?: RandomIdGenerator.Default
+    val id: String
 
     companion object {
         private val objectMapper = jacksonObjectMapper()
@@ -39,30 +41,30 @@ open class JsonMessage(
         private val serviceName: String? = System.getenv("NAIS_APP_NAME")
         private val serviceHostname = serviceName?.let { InetAddress.getLocalHost().hostName }
 
-        fun newMessage(map: Map<String, Any> = emptyMap()) =
-            objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it)) }
-        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap()) = newMessage(mapOf(EventNameKey to eventName) + map)
-        fun newNeed(behov: Collection<String>, map: Map<String, Any> = emptyMap()) = newMessage("behov", mapOf(
+        fun newMessage(map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) =
+            objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it), randomIdGenerator) }
+        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) = newMessage(mapOf(EventNameKey to eventName) + map, randomIdGenerator)
+        fun newNeed(behov: Collection<String>, map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) = newMessage("behov", mapOf(
             "@behovId" to UUID.randomUUID(),
             NeedKey to behov
-        ) + map)
+        ) + map, randomIdGenerator)
 
-        internal fun populateStandardFields(originalMessage: JsonMessage, message: String): String {
+        internal fun populateStandardFields(originalMessage: JsonMessage, message: String, randomIdGenerator: RandomIdGenerator = originalMessage.idGenerator): String {
             return (objectMapper.readTree(message) as ObjectNode).also {
                 it.replace("@forårsaket_av", objectMapper.valueToTree(originalMessage.tracing))
-                if (it.path("@id").isMissingOrNull() || it.path("@id").asText() == originalMessage.id.toString()) {
-                    val id = UUID.randomUUID()
+                if (it.path("@id").isMissingOrNull() || it.path("@id").asText() == originalMessage.id) {
+                    val id = randomIdGenerator.generateId()
                     val opprettet = LocalDateTime.now()
-                    it.put(IdKey, "$id")
+                    it.put(IdKey, id)
                     it.put(OpprettetKey, "$opprettet")
                     initializeOrSetParticipatingServices(it, id, opprettet)
                 }
             }.toString()
         }
 
-        private fun initializeOrSetParticipatingServices(node: JsonNode, id: UUID, opprettet: LocalDateTime) {
+        private fun initializeOrSetParticipatingServices(node: JsonNode, id: String, opprettet: LocalDateTime) {
             val entry = mutableMapOf(
-                "id" to "$id",
+                "id" to id,
                 "time" to "$opprettet"
             ).apply {
                 compute("service") { _, _ -> serviceName }
@@ -82,7 +84,7 @@ open class JsonMessage(
         } catch (err: JsonParseException) {
             problems.severe("Invalid JSON per Jackson library: ${err.message}")
         }
-        id = json.path("@id").takeUnless { it.isMissingOrNull() }?.asText()?.let { UUID.fromString(it) } ?: UUID.randomUUID().also {
+        id = json.path("@id").takeUnless { it.isMissingOrNull() }?.asText() ?: idGenerator.generateId().also {
             set("@id", it)
         }
         val opprettet = LocalDateTime.now()
@@ -321,6 +323,8 @@ open class JsonMessage(
 
     fun toJson(): String = objectMapper.writeValueAsString(json)
 }
+
+fun String.toUUID(): UUID = UUID.fromString(this)
 
 fun JsonNode.isMissingOrNull() = isMissingNode || isNull
 

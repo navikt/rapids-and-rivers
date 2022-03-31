@@ -28,7 +28,7 @@ internal class JsonMessageTest {
     @Test
     fun `create message from map`() {
         val node = objectMapper.readTree(JsonMessage.newMessage(mapOf("foo" to "bar")).toJson())
-        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
+        assertDoesNotThrow { node.path("@id").asText().toUUID() }
         assertDoesNotThrow { LocalDateTime.parse(node.path("@opprettet").asText()) }
         assertEquals("bar", node.path("foo").asText())
     }
@@ -38,8 +38,8 @@ internal class JsonMessageTest {
         val behovsliste = listOf("behov1", "behov2")
         val node = objectMapper.readTree(JsonMessage.newNeed(behovsliste, mapOf("foo" to "bar")).toJson())
         assertEquals(behovsliste, node.path("@behov").map(JsonNode::asText))
-        assertDoesNotThrow { UUID.fromString(node.path("@behovId").asText()) }
-        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
+        assertDoesNotThrow { node.path("@behovId").asText().toUUID() }
+        assertDoesNotThrow { node.path("@id").asText().toUUID() }
         assertDoesNotThrow { LocalDateTime.parse(node.path("@opprettet").asText()) }
         assertEquals("behov", node.path("@event_name").asText())
         assertEquals("bar", node.path("foo").asText())
@@ -56,15 +56,37 @@ internal class JsonMessageTest {
         val customId = UUID.randomUUID()
         val msg = JsonMessage.newMessage(mapOf("@id" to customId))
         val node = objectMapper.readTree(msg.toJson())
-        assertEquals(customId, msg.id)
-        assertEquals(msg.id.toString(), node.path("@id").asText())
+        assertEquals(customId.toString(), msg.id)
+        assertEquals(msg.id, node.path("@id").asText())
     }
 
     @Test
     fun `sets id if missing`() {
         val msg = JsonMessage.newMessage()
         val node = objectMapper.readTree(msg.toJson())
-        assertDoesNotThrow { UUID.fromString(node.path("@id").asText()) }
+        assertDoesNotThrow { node.path("@id").asText().toUUID() }
+    }
+
+    @Test
+    fun `custom id generator`() {
+        val expected = "notSoRandom"
+        val msg = JsonMessage.newMessage() { expected }
+        assertEquals(expected, msg.id)
+    }
+
+    @Test
+    fun `populate missing fields`() {
+        val expected = "notSoRandom"
+        val msg = JsonMessage.newMessage() { expected }
+        val json1 = JsonMessage.populateStandardFields(msg, msg.toJson())
+        val node1 = objectMapper.readTree(json1)
+        assertEquals(expected, node1.path("@forårsaket_av").path("id").asText())
+        assertEquals(expected, node1.path("@id").asText())
+        val expected2 = "differentRandom"
+        val json2 = JsonMessage.populateStandardFields(msg, msg.toJson()) { expected2 }
+        val node2 = objectMapper.readTree(json2)
+        assertEquals(expected, node2.path("@forårsaket_av").path("id").asText())
+        assertEquals(expected2, node2.path("@id").asText())
     }
 
     @Test
