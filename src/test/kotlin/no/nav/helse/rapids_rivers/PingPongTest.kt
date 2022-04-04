@@ -23,6 +23,12 @@ class PingPongTest {
     }
 
     @Test
+    fun `ignorer hyppige pings`() {
+        repeat(10) { sendPing(LocalDateTime.now()) }
+        assertEquals(1, rapid.inspektør.size)
+    }
+
+    @Test
     fun `svarer på nye pings`() {
         sendPing(LocalDateTime.now())
         assertEquals(1, rapid.inspektør.size)
