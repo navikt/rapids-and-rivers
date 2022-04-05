@@ -200,6 +200,7 @@ class KafkaRapid(
             log.info("stopped consuming messages after receiving stop signal")
         }
         producerClosed.set(true)
+        tryAndLog(producer::flush)
         tryAndLog(producer::close)
         tryAndLog(consumer::unsubscribe)
         tryAndLog(consumer::close)
