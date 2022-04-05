@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.InetAddress
-import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -87,6 +86,11 @@ class RapidApplication internal constructor(
     override fun onNotReady(rapidsConnection: RapidsConnection) {
         publishApplicationEvent(rapidsConnection, "application_not_ready")
         notifyNotReady()
+    }
+
+    override fun onShutdownSignal(rapidsConnection: RapidsConnection) {
+        publishApplicationEvent(rapidsConnection, "application_stop")
+        notifyShutdownSignal()
     }
 
     override fun onShutdown(rapidsConnection: RapidsConnection) {

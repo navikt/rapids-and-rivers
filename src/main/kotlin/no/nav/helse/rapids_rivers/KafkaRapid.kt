@@ -82,6 +82,7 @@ class KafkaRapid(
     override fun stop() {
         log.info("stopping rapid")
         if (Stopped == running.getAndSet(Stopped)) return log.info("rapid already stopped")
+        notifyShutdownSignal()
         consumer.wakeup()
     }
 

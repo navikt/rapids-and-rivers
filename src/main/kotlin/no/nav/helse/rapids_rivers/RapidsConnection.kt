@@ -51,13 +51,22 @@ abstract class RapidsConnection : MessageContext {
     protected fun notifyStartup() {
         statusListeners.forEach { it.onStartup(this) }
     }
-
     protected fun notifyReady() {
         statusListeners.forEach { it.onReady(this) }
     }
     protected fun notifyNotReady() {
         statusListeners.forEach { it.onNotReady(this) }
     }
+    protected fun notifyShutdownSignal() {
+        statusListeners.forEach {
+            try {
+                it.onShutdownSignal(this)
+            } catch (err: Exception) {
+                log.error("A shutdown signal callback threw an exception: ${err.message}", err)
+            }
+        }
+    }
+
     protected fun notifyShutdown() {
         statusListeners.forEach {
             try {
@@ -75,6 +84,7 @@ abstract class RapidsConnection : MessageContext {
         fun onStartup(rapidsConnection: RapidsConnection) {}
         fun onReady(rapidsConnection: RapidsConnection) {}
         fun onNotReady(rapidsConnection: RapidsConnection) {}
+        fun onShutdownSignal(rapidsConnection: RapidsConnection) {}
         fun onShutdown(rapidsConnection: RapidsConnection) {}
     }
 
