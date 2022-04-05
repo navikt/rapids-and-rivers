@@ -83,6 +83,7 @@ class KafkaRapid(
         log.info("stopping rapid")
         if (Stopped == running.getAndSet(Stopped)) return log.info("rapid already stopped")
         notifyShutdownSignal()
+        tryAndLog { producer.flush() }
         consumer.wakeup()
     }
 

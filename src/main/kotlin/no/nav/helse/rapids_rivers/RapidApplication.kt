@@ -103,7 +103,7 @@ class RapidApplication internal constructor(
             log.info("publishing $event event for app_name=$appName, instance_id=$instanceId")
             try {
                 rapidsConnection.publish(it)
-            } catch (err: Exception) { }
+            } catch (err: Exception) { log.info("failed to publish event: {}", err.message, err) }
         }
     }
 
