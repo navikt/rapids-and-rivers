@@ -1,24 +1,31 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+
+val jvmTarget = "17"
+
 val ktorVersion = "1.6.7"
 val kafkaVersion = "3.1.0"
 val micrometerRegistryPrometheusVersion = "1.8.1"
 val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.2"
+val logbackClassicVersion = "1.3.0-alpha14"
+val logbackEncoderVersion = "7.0.1"
+val kafkaEmbededVersion = "kafka310-SNAPSHOT"
+val awaitilityVersion = "4.2.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.6.0"
+    kotlin("jvm") version "1.6.20"
     id("java")
     id("maven-publish")
 }
 
 dependencies {
-    api("ch.qos.logback:logback-classic:1.3.0-alpha10")
-    api("net.logstash.logback:logstash-logback-encoder:7.0.1") {
+    api("ch.qos.logback:logback-classic:$logbackClassicVersion")
+    api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion") {
         exclude("com.fasterxml.jackson.core")
     }
     api("io.ktor:ktor-server-cio:$ktorVersion")
@@ -35,23 +42,23 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
-    testImplementation("com.github.navikt:kafka-embedded-env:kafka310-SNAPSHOT")
-    testImplementation("org.awaitility:awaitility:4.1.1")
+    testImplementation("com.github.navikt:kafka-embedded-env:$kafkaEmbededVersion")
+    testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.toVersion(jvmTarget)
+    targetCompatibility = JavaVersion.toVersion(jvmTarget)
 
     withSourcesJar()
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = jvmTarget
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = jvmTarget
 }
 
 tasks.withType<Test> {
@@ -67,7 +74,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "7.4"
+    gradleVersion = "7.4.2"
 }
 
 repositories {
