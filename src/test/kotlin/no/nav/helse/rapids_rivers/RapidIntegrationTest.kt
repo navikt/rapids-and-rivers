@@ -9,7 +9,6 @@ import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -75,6 +74,7 @@ internal class RapidIntegrationTest {
         embeddedKafkaEnvironment.tearDown()
     }
 
+    @DelicateCoroutinesApi
     @BeforeEach
     internal fun start() {
         rapid = createTestRapid()
@@ -116,6 +116,7 @@ internal class RapidIntegrationTest {
             }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `in case of exception, the offset committed is the erroneous record`() {
         ensureRapidIsActive()
@@ -201,6 +202,7 @@ internal class RapidIntegrationTest {
         assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `seek to beginning`() {
         val readMessages = mutableListOf<JsonMessage>()
@@ -240,6 +242,7 @@ internal class RapidIntegrationTest {
         waitForReply(anotherTestTopic, serviceId, eventName, value)
     }
 
+    @DelicateCoroutinesApi
     private fun KafkaRapid.startNonBlocking() {
         rapidJob = GlobalScope.launch {
             try {
@@ -302,7 +305,7 @@ internal class RapidIntegrationTest {
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
         }
 
-    private fun consumerProperties(): MutableMap<String, Any>? {
+    private fun consumerProperties(): MutableMap<String, Any> {
         return HashMap<String, Any>().apply {
             put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")

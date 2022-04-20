@@ -1,23 +1,23 @@
 package no.nav.helse.rapids_rivers
 
-import io.ktor.application.Application
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.application.log
+import io.ktor.server.application.log
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.metrics.micrometer.MicrometerMetrics
-import io.ktor.response.respond
-import io.ktor.response.respondText
-import io.ktor.response.respondTextWriter
-import io.ktor.routing.get
-import io.ktor.routing.routing
+import io.ktor.server.application.Application
+import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.ApplicationEngineEnvironmentBuilder
 import io.ktor.server.engine.ApplicationEngineFactory
 import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.response.respondTextWriter
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
@@ -89,9 +89,9 @@ class KtorBuilder {
         builder.module {
             routing {
                 get("/stop") {
-                    log.info("Received shutdown signal via preStopHookPath, calling actual stop hook")
+                    this@module.log.info("Received shutdown signal via preStopHookPath, calling actual stop hook")
                     preStopHook()
-                    log.info("Stop hook returned, responding to preStopHook request with 200 OK")
+                    this@module.log.info("Stop hook returned, responding to preStopHook request with 200 OK")
                     call.respond(HttpStatusCode.OK)
                 }
             }
