@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val jvmTarget = "17"
 
-val ktorVersion = "1.6.7"
+val ktorVersion = "2.0.0"
 val kafkaVersion = "3.1.0"
 val micrometerRegistryPrometheusVersion = "1.8.1"
 val junitJupiterVersion = "5.8.2"
@@ -35,13 +35,14 @@ dependencies {
     api("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
     api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 
-    api("io.ktor:ktor-metrics-micrometer:$ktorVersion")
+    api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
+    //TODO oppdater når den blir publisert på maven central: testImplementation("no.nav:kafka-embedded-env:3.1.0")
     testImplementation("com.github.navikt:kafka-embedded-env:$kafkaEmbededVersion")
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }

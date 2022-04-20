@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.application.*
+import io.ktor.server.application.*
 import io.ktor.http.*
-import io.ktor.response.*
-import io.ktor.routing.*
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
 import no.nav.common.KafkaEnvironment
@@ -54,6 +55,7 @@ internal class RapidApplicationComponentTest {
     private lateinit var consumerJob: Job
     private val messages = mutableListOf<String>()
 
+    @DelicateCoroutinesApi
     @BeforeAll
     internal fun setup() {
         embeddedKafkaEnvironment.start()
@@ -99,6 +101,7 @@ internal class RapidApplicationComponentTest {
         messages.clear()
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `custom endpoint`() {
         val expectedText = "Hello, World!"
@@ -118,6 +121,7 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `nais endpoints`() {
         withRapid() { rapid ->
@@ -137,6 +141,7 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `pre stop hook`() {
         withRapid() { _ ->
@@ -154,6 +159,7 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `metrics endpoints`() {
         withRapid { _ ->
@@ -167,6 +173,7 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `metric values`() {
         withRapid(collectorRegistry = CollectorRegistry.defaultRegistry) { rapid ->
@@ -177,13 +184,15 @@ internal class RapidApplicationComponentTest {
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/metrics") }
 
-            val response = BufferedReader(InputStreamReader((URL("$appUrl/metrics").openConnection() as HttpURLConnection).inputStream)).lines()
-                .collect(Collectors.joining())
+            val response =
+                BufferedReader(InputStreamReader((URL("$appUrl/metrics").openConnection() as HttpURLConnection).inputStream)).lines()
+                    .collect(Collectors.joining())
             assertTrue(response.contains("message_counter"))
             assertTrue(response.contains("on_packet_seconds"))
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `creates events for up and down`() {
         withRapid() { rapid ->
@@ -193,6 +202,7 @@ internal class RapidApplicationComponentTest {
         }
     }
 
+    @DelicateCoroutinesApi
     @Test
     fun `ping pong`() {
         withRapid() { rapid ->
@@ -222,14 +232,16 @@ internal class RapidApplicationComponentTest {
             }) { it != null }
     }
 
+    @DelicateCoroutinesApi
     private fun withRapid(
         builder: RapidApplication.Builder? = null,
         collectorRegistry: CollectorRegistry = CollectorRegistry(),
         block: (RapidsConnection) -> Unit
     ) {
-        val rapidsConnection = (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
-            .withCollectorRegistry(collectorRegistry)
-            .build()
+        val rapidsConnection =
+            (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
+                .withCollectorRegistry(collectorRegistry)
+                .build()
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {
             block(rapidsConnection)
