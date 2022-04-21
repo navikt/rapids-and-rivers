@@ -6,19 +6,19 @@ val jvmTarget = "17"
 
 val ktorVersion = "2.0.0"
 val kafkaVersion = "3.1.0"
-val micrometerRegistryPrometheusVersion = "1.8.1"
+val micrometerRegistryPrometheusVersion = "1.8.4"
 val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.2"
 val logbackClassicVersion = "1.3.0-alpha14"
 val logbackEncoderVersion = "7.0.1"
-val kafkaEmbededVersion = "kafka310-SNAPSHOT"
+val kafkaEmbededVersion = "3.1.0"
 val awaitilityVersion = "4.2.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.6.20"
+    kotlin("jvm") version "1.6.21"
     id("java")
     id("maven-publish")
 }
@@ -42,8 +42,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
-    //TODO oppdater når den blir publisert på maven central: testImplementation("no.nav:kafka-embedded-env:3.1.0")
-    testImplementation("com.github.navikt:kafka-embedded-env:$kafkaEmbededVersion")
+    testImplementation("no.nav:kafka-embedded-env:$kafkaEmbededVersion")
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
 
