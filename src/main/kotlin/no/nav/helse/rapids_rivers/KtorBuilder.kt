@@ -87,11 +87,12 @@ class KtorBuilder {
 
     fun preStopHook(preStopHook: suspend () -> Unit) = apply {
         builder.module {
+            val logger = log
             routing {
                 get("/stop") {
-                    this@module.log.info("Received shutdown signal via preStopHookPath, calling actual stop hook")
+                    logger.info("Received shutdown signal via preStopHookPath, calling actual stop hook")
                     preStopHook()
-                    this@module.log.info("Stop hook returned, responding to preStopHook request with 200 OK")
+                    logger.info("Stop hook returned, responding to preStopHook request with 200 OK")
                     call.respond(HttpStatusCode.OK)
                 }
             }
