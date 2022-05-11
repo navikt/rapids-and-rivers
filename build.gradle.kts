@@ -6,7 +6,7 @@ val jvmTarget = "17"
 
 val ktorVersion = "2.0.1"
 val kafkaVersion = "3.1.0"
-val micrometerRegistryPrometheusVersion = "1.8.4"
+val micrometerRegistryPrometheusVersion = "1.8.5"
 val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.2"
 val logbackClassicVersion = "1.3.0-alpha15"
