@@ -11,7 +11,7 @@ val junitJupiterVersion = "5.8.2"
 val jacksonVersion = "2.13.2"
 val logbackClassicVersion = "1.3.0-alpha14"
 val logbackEncoderVersion = "7.0.1"
-val kafkaEmbededVersion = "3.1.3"
+val kafkaEmbededVersion = "3.1.4"
 val awaitilityVersion = "4.2.0"
 
 group = "com.github.navikt"
