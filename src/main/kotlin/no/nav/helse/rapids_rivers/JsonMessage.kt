@@ -39,6 +39,7 @@ open class JsonMessage(
         private const val ParticipatingServicesKey = "system_participating_services"
 
         private val serviceName: String? = System.getenv("NAIS_APP_NAME")
+        private val serviceImage: String? = System.getenv("NAIS_APP_IMAGE")
         private val serviceHostname = serviceName?.let { InetAddress.getLocalHost().hostName }
 
         fun newMessage(map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) =
@@ -69,6 +70,7 @@ open class JsonMessage(
             ).apply {
                 compute("service") { _, _ -> serviceName }
                 compute("instance") { _, _ -> serviceHostname }
+                compute("image") { _, _ -> serviceImage }
             }
             if (node.path(ParticipatingServicesKey).isMissingOrNull()) (node as ObjectNode).putArray(ParticipatingServicesKey).add(objectMapper.valueToTree<ObjectNode>(entry))
             else (node.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
