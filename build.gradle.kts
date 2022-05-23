@@ -42,7 +42,10 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
-    testImplementation("no.nav:kafka-embedded-env:$kafkaEmbededVersion")
+    testImplementation("no.nav:kafka-embedded-env:$kafkaEmbededVersion"){
+        exclude("log4j")
+        exclude("org.glassfish")
+    }
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
 

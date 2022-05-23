@@ -17,11 +17,7 @@ jobs:
           cache: 'gradle'
       - name: test and build
         run: ./gradlew build
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        if: always()
-        with:
-          files: "build/test-results/**/*.xml"
+
   snyk:
     runs-on: ubuntu-latest
     steps:
