@@ -45,6 +45,7 @@ dependencies {
     testImplementation("no.nav:kafka-embedded-env:$kafkaEmbededVersion"){
         exclude("log4j")
         exclude("org.glassfish")
+        exclude("io.netty")
     }
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
