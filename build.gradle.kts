@@ -25,9 +25,8 @@ plugins {
 
 dependencies {
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
-    api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion") {
-        exclude("com.fasterxml.jackson.core")
-    }
+    api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
+
     api("io.ktor:ktor-server-cio:$ktorVersion")
 
     api("org.apache.kafka:kafka-clients:$kafkaVersion")
