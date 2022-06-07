@@ -101,6 +101,16 @@ Den bundlede `logback.xml` har konfigurasjon for secureLogs (men husk å enable 
 LoggerFactory.getLogger("tjenestekall")
 ```
 
+# Releasing 
+
+Alle commits på `main` gren vil lage en Github release og bygge en ny artifakt mot Jitpack. 
+
+Versjonen vil har formatet:  
+
+```YYYYmmDDMMss.<git sha>```
+
+For å "skippe" en release kan en legge til melding `[ci skip]` på git commit melding. 
+
 # Henvendelser
 
 Spørsmål knyttet til koden eller prosjektet kan stilles som issues her på GitHub.
