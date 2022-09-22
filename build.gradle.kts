@@ -5,20 +5,20 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val jvmTarget = "17"
 
 val ktorVersion = "2.1.0"
-val kafkaVersion = "3.2.1"
-val micrometerRegistryPrometheusVersion = "1.9.1"
+val kafkaVersion = "3.2.3"
+val micrometerRegistryPrometheusVersion = "1.9.3"
 val junitJupiterVersion = "5.9.0"
-val jacksonVersion = "2.13.3"
-val logbackClassicVersion = "1.2.11"
+val jacksonVersion = "2.13.4"
+val logbackClassicVersion = "1.4.1"
 val logbackEncoderVersion = "7.2"
-val kafkaEmbeddedVersion = "3.2.1"
 val awaitilityVersion = "4.2.0"
+val kafkaTestcontainerVersion = "1.17.3"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.7.0"
+    kotlin("jvm") version "1.7.10"
     id("java")
     id("maven-publish")
 }
@@ -41,11 +41,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
-    testImplementation("no.nav:kafka-embedded-env:$kafkaEmbeddedVersion"){
-        exclude("log4j")
-        exclude("org.glassfish")
-        exclude("io.netty")
-    }
+    testImplementation("org.testcontainers:kafka:$kafkaTestcontainerVersion")
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
 

@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlinx.coroutines.*
-import no.nav.common.KafkaEnvironment
 import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.admin.AdminClient
+import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -21,6 +22,8 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.utility.DockerImageName
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
@@ -37,16 +40,11 @@ internal class RapidIntegrationTest {
     private val testTopic = "a-test-topic"
     private val anotherTestTopic = "a-test-topic"
 
-    private val embeddedKafkaEnvironment = KafkaEnvironment(
-        autoStart = false,
-        noOfBrokers = 1,
-        topicInfos = listOf(testTopic, anotherTestTopic).map { KafkaEnvironment.TopicInfo(it, partitions = 1) },
-        withSchemaRegistry = false,
-        withSecurity = false
-    )
+    private val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
 
     private lateinit var kafkaProducer: Producer<String, String>
     private lateinit var kafkaConsumer: Consumer<String, String>
+    private lateinit var kafkaAdmin: AdminClient
 
     private lateinit var config: KafkaConfig
     private lateinit var rapid: KafkaRapid
@@ -54,14 +52,15 @@ internal class RapidIntegrationTest {
 
     @BeforeAll
     internal fun setup() {
-        embeddedKafkaEnvironment.start()
+        kafkaContainer.start()
 
         kafkaProducer = KafkaProducer(producerProperties(), StringSerializer(), StringSerializer())
         kafkaConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer())
+        kafkaAdmin = KafkaAdminClient.create(consumerProperties())
         kafkaConsumer.subscribe(listOf(testTopic))
 
         config = KafkaConfig(
-            bootstrapServers = embeddedKafkaEnvironment.brokersURL,
+            bootstrapServers = kafkaContainer.bootstrapServers,
             consumerGroupId = consumerId
         )
     }
@@ -71,7 +70,7 @@ internal class RapidIntegrationTest {
         kafkaConsumer.unsubscribe()
         kafkaConsumer.close()
         kafkaProducer.close()
-        embeddedKafkaEnvironment.tearDown()
+        kafkaContainer.stop()
     }
 
     @DelicateCoroutinesApi
@@ -157,7 +156,7 @@ internal class RapidIntegrationTest {
                 .atMost(20, SECONDS)
                 .until { !rapid.isRunning() }
 
-        val actualOffset = embeddedKafkaEnvironment.adminClient
+        val actualOffset = kafkaAdmin
                 ?.listConsumerGroupOffsets(consumerId)
                 ?.partitionsToOffsetAndMetadata()
                 ?.get()
@@ -190,7 +189,7 @@ internal class RapidIntegrationTest {
         testRiver(eventName, serviceId)
         val recordMetadata = waitForReply(testTopic, serviceId, eventName, value)
 
-        val offsets = embeddedKafkaEnvironment.adminClient
+        val offsets = kafkaAdmin
             ?.listConsumerGroupOffsets(consumerId)
             ?.partitionsToOffsetAndMetadata()
             ?.get()
@@ -296,7 +295,7 @@ internal class RapidIntegrationTest {
 
     private fun producerProperties() =
         Properties().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
             put(ProducerConfig.ACKS_CONFIG, "all")
             put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
@@ -307,7 +306,7 @@ internal class RapidIntegrationTest {
 
     private fun consumerProperties(): MutableMap<String, Any> {
         return HashMap<String, Any>().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
             put(ConsumerConfig.GROUP_ID_CONFIG, "integration-test")
