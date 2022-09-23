@@ -11,7 +11,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
-import no.nav.common.KafkaEnvironment
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -21,6 +20,8 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.utility.DockerImageName
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -42,13 +43,7 @@ internal class RapidApplicationComponentTest {
 
 
     private val testTopic = "a-test-topic"
-    private val embeddedKafkaEnvironment = KafkaEnvironment(
-        autoStart = false,
-        noOfBrokers = 1,
-        topicInfos = listOf(KafkaEnvironment.TopicInfo(testTopic, partitions = 1)),
-        withSchemaRegistry = false,
-        withSecurity = false
-    )
+    private val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
 
     private lateinit var appUrl: String
     private lateinit var testConsumer: Consumer<String, String>
@@ -58,7 +53,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @BeforeAll
     internal fun setup() {
-        embeddedKafkaEnvironment.start()
+        kafkaContainer.start()
         testConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).apply {
             subscribe(listOf(testTopic))
         }
@@ -71,12 +66,12 @@ internal class RapidApplicationComponentTest {
     internal fun teardown() {
         runBlocking { consumerJob.cancelAndJoin() }
         testConsumer.close()
-        embeddedKafkaEnvironment.tearDown()
+        kafkaContainer.stop()
     }
 
     private fun consumerProperties(): MutableMap<String, Any>? {
         return HashMap<String, Any>().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaEnvironment.brokersURL)
+            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
             put(SaslConfigs.SASL_MECHANISM, "PLAIN")
             put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer")
@@ -88,7 +83,7 @@ internal class RapidApplicationComponentTest {
         val randomPort = ServerSocket(0).use { it.localPort }
         appUrl = "http://localhost:$randomPort"
         return mapOf(
-            "KAFKA_BOOTSTRAP_SERVERS" to embeddedKafkaEnvironment.brokersURL,
+            "KAFKA_BOOTSTRAP_SERVERS" to kafkaContainer.bootstrapServers,
             "KAFKA_CONSUMER_GROUP_ID" to "component-test",
             "KAFKA_RAPID_TOPIC" to testTopic,
             "RAPID_APP_NAME" to "app-name",
