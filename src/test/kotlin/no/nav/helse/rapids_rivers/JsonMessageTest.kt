@@ -170,6 +170,42 @@ internal class JsonMessageTest {
     }
 
     @Test
+    fun `demand with predicate accepting json node`() {
+        MessageProblems("").apply {
+            JsonMessage("""{ "foo": "bar" }""", this).apply {
+                demand("foo") { it: JsonNode -> it.asText() == "bar" }
+            }
+            assertFalse(hasErrors())
+        }
+        MessageProblems("").apply {
+            JsonMessage("""{ "foo": "nope" }""", this).apply {
+                assertThrows<MessageProblems.MessageException> {
+                    demand("foo") { it: JsonNode -> it.asText() == "bar" }
+                }
+            }
+            assertTrue(hasErrors())
+        }
+    }
+
+    @Test
+    fun `demand with predicate accepting string`() {
+        MessageProblems("").apply {
+            JsonMessage("""{ "foo": "bar" }""", this).apply {
+                demand("foo") { it: String -> it.startsWith("bar") }
+            }
+            assertFalse(hasErrors())
+        }
+        MessageProblems("").apply {
+            JsonMessage("""{ "foo": "nope" }""", this).apply {
+                assertThrows<MessageProblems.MessageException> {
+                    demand("foo") { it: String -> it == "bar" }
+                }
+            }
+            assertTrue(hasErrors())
+        }
+    }
+
+    @Test
     fun `rejected booolean`() {
         assertThrows<MessageProblems.MessageException> { message("{\"key\": true}").apply { rejectValue("key", true) } }
         assertDoesNotThrow { message("{\"key\": false}").apply { rejectValue("key", true) } }

@@ -189,6 +189,21 @@ open class JsonMessage(
         accessor(key)
     }
 
+    @JvmName("demandNode")
+    fun demand(key: String, predicate: (JsonNode) -> Boolean) {
+        val node = node(key)
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+
+        if (!predicate(node)) problems.severe("Demanded $key did not match the predicate")
+
+        accessor(key)
+    }
+
+    @JvmName("demandString")
+    fun demand(key: String, predicate: (String) -> Boolean) {
+        demand(key) { node: JsonNode -> predicate(node.asText())}
+    }
+
     fun requireKey(vararg keys: String) {
         keys.forEach { requireKey(it) }
     }
