@@ -12,7 +12,7 @@ val jacksonVersion = "2.13.4"
 val logbackClassicVersion = "1.4.1"
 val logbackEncoderVersion = "7.2"
 val awaitilityVersion = "4.2.0"
-val kafkaTestcontainerVersion = "1.17.3"
+val kafkaTestcontainerVersion = "1.17.5"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
