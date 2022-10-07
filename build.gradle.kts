@@ -9,7 +9,7 @@ val kafkaVersion = "3.2.3"
 val micrometerRegistryPrometheusVersion = "1.9.4"
 val junitJupiterVersion = "5.9.0"
 val jacksonVersion = "2.13.4"
-val logbackClassicVersion = "1.4.1"
+val logbackClassicVersion = "1.4.3"
 val logbackEncoderVersion = "7.2"
 val awaitilityVersion = "4.2.0"
 val kafkaTestcontainerVersion = "1.17.3"
@@ -18,7 +18,7 @@ group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.7.10"
+    kotlin("jvm") version "1.7.20"
     id("java")
     id("maven-publish")
 }
