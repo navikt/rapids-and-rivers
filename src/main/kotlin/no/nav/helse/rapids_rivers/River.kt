@@ -62,7 +62,9 @@ class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: R
                 it.name(),
                 eventName
             ).time {
-                it.onPacket(packet, context)
+                withMDC(it.dataForMDC(packet)) {
+                    it.onPacket(packet, context)
+                }
             }
             Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "ok").inc()
         }
@@ -101,6 +103,7 @@ class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: R
         override fun onError(problems: MessageProblems, context: MessageContext) {}
 
         fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {}
+        fun dataForMDC(packet: JsonMessage): Map<String, String> = emptyMap()
 
         fun name(): String = Name(this)
     }
