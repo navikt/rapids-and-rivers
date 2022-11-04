@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val jvmTarget = "17"
 
 val ktorVersion = "2.1.3"
-val kafkaVersion = "3.2.3"
+val kafkaVersion = "7.2.2-ce"
 val micrometerRegistryPrometheusVersion = "1.9.5"
 val junitJupiterVersion = "5.9.1"
 val jacksonVersion = "2.13.4"
