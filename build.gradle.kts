@@ -5,10 +5,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val jvmTarget = "17"
 
 val ktorVersion = "2.1.3"
-val kafkaVersion = "3.2.3"
-val micrometerRegistryPrometheusVersion = "1.9.5"
+val kafkaVersion = "3.3.1"
+val micrometerRegistryPrometheusVersion = "1.10.0"
 val junitJupiterVersion = "5.9.1"
-val jacksonVersion = "2.13.4"
+val jacksonVersion = "2.14.0"
 val logbackClassicVersion = "1.4.4"
 val logbackEncoderVersion = "7.2"
 val awaitilityVersion = "4.2.0"
@@ -18,7 +18,7 @@ group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "1.7.21"
     id("java")
     id("maven-publish")
 }
