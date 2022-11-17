@@ -52,6 +52,7 @@ class KafkaConfig(
         put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, if (true == autoCommit) "true" else "false")
         put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "$maxPollRecords")
         put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "$maxPollIntervalMs")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,"org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
 
     internal fun producerConfig() = Properties().apply {
