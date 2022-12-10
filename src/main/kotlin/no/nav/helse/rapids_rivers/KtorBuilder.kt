@@ -19,6 +19,7 @@ import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.Metrics.addRegistry
 import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
@@ -51,39 +52,44 @@ class KtorBuilder {
         builder.module(module)
     }
 
-    fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration> build(factory: ApplicationEngineFactory<TEngine, TConfiguration>): ApplicationEngine = embeddedServer(factory, applicationEngineEnvironment {
-        module {
-            install(MicrometerMetrics) {
-                registry = PrometheusMeterRegistry(
-                    PrometheusConfig.DEFAULT,
-                    collectorRegistry,
-                    Clock.SYSTEM
-                )
-                meterBinders = listOf(
-                    ClassLoaderMetrics(),
-                    JvmMemoryMetrics(),
-                    JvmGcMetrics(),
-                    ProcessorMetrics(),
-                    JvmThreadMetrics(),
-                    LogbackMetrics()
-                ) + extraMeterBinders
-            }
+    fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration> build(factory: ApplicationEngineFactory<TEngine, TConfiguration>): ApplicationEngine {
+        val prometheusMeterRegistry = PrometheusMeterRegistry(
+            PrometheusConfig.DEFAULT,
+            collectorRegistry,
+            Clock.SYSTEM
+        )
+        addRegistry(prometheusMeterRegistry)
 
-            routing {
-                get("/metrics") {
-                    val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
+        return embeddedServer(factory, applicationEngineEnvironment {
+            module {
+                install(MicrometerMetrics) {
+                    registry = prometheusMeterRegistry
+                    meterBinders = listOf(
+                        ClassLoaderMetrics(),
+                        JvmMemoryMetrics(),
+                        JvmGcMetrics(),
+                        ProcessorMetrics(),
+                        JvmThreadMetrics(),
+                        LogbackMetrics()
+                    ) + extraMeterBinders
+                }
 
-                    call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
-                        TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
+                routing {
+                    get("/metrics") {
+                        val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
+
+                        call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
+                            TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
+                        }
                     }
                 }
             }
-        }
 
-        this.connectors.addAll(builder.connectors)
-        this.log = builder.log
-        this.modules.addAll(builder.modules)
-    })
+            this.connectors.addAll(builder.connectors)
+            this.log = builder.log
+            this.modules.addAll(builder.modules)
+        })
+    }
 
     fun preStopHook(preStopHook: suspend () -> Unit) = apply {
         builder.module {
