@@ -77,7 +77,6 @@ tasks.withType<Wrapper> {
 }
 
 repositories {
-    maven("https://jitpack.io")
     maven("https://packages.confluent.io/maven/")
     mavenCentral()
 }
@@ -102,6 +101,7 @@ publishing {
                 name.set("rapids-rivers")
                 description.set("Rapids and Rivers")
                 url.set("https://github.com/navikt/rapids-and-rivers")
+                version = System.getenv("RELEASE_TAG")
 
                 licenses {
                     license {
