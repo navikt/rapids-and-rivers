@@ -10,7 +10,6 @@ jobs:
     name: create tag
     runs-on: ubuntu-latest
     steps:
-      - id: Set release tag
         run: |
           export TAG_NAME="$(TZ="Europe/Oslo" date +%Y%m%d%H%M%s).$(echo github.sha | cut -c 1-12)"
           echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
