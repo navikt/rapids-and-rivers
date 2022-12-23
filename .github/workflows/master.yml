@@ -75,3 +75,6 @@ jobs:
           cache: 'gradle'
       - name: publish
         run: ./gradlew publish
+        env:
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
