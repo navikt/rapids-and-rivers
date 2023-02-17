@@ -64,7 +64,7 @@ class KafkaRapid(
         return rapidTopic
     }
 
-    private fun publish(producerRecord: ProducerRecord<String, String>, waitForFlush: Boolean = false) {
+    private fun publish(producerRecord: ProducerRecord<String, String>, waitForFlush: Boolean) {
         check(!producerClosed.get()) { "can't publish messages when producer is closed" }
         producer.send(producerRecord) { _, err ->
             if (err == null || !isFatalError(err)) return@send
