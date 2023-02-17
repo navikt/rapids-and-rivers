@@ -55,8 +55,8 @@ internal class RiverTest {
     }
 
     private val context = object : MessageContext {
-        override fun publish(message: String) {}
-        override fun publish(key: String, message: String) {}
+        override fun publish(message: String, waitForFlush: Boolean) {}
+        override fun publish(key: String, message: String, waitForFlush: Boolean) {}
         override fun rapidName(): String {return "test"}
     }
 
@@ -65,9 +65,9 @@ internal class RiverTest {
     private lateinit var messageProblems: MessageProblems
     private lateinit var river: River
     private val rapid = object : RapidsConnection() {
-        override fun publish(message: String) {}
+        override fun publish(message: String, waitForFlush: Boolean) {}
 
-        override fun publish(key: String, message: String) {}
+        override fun publish(key: String, message: String, waitForFlush: Boolean) {}
         override fun rapidName(): String {
             return "test"
         }

@@ -52,24 +52,27 @@ class KafkaRapid(
     fun isRunning() = running.get()
     fun isReady() = isRunning() && ready.get()
 
-    override fun publish(message: String) {
-        publish(ProducerRecord(rapidTopic, message))
+    override fun publish(message: String, waitForFlush: Boolean) {
+        publish(ProducerRecord(rapidTopic, message), waitForFlush)
     }
 
-    override fun publish(key: String, message: String) {
-        publish(ProducerRecord(rapidTopic, key, message))
+    override fun publish(key: String, message: String, waitForFlush: Boolean) {
+        publish(ProducerRecord(rapidTopic, key, message), waitForFlush)
     }
 
     override fun rapidName(): String {
         return rapidTopic
     }
 
-    private fun publish(producerRecord: ProducerRecord<String, String>) {
+    private fun publish(producerRecord: ProducerRecord<String, String>, waitForFlush: Boolean = false) {
         check(!producerClosed.get()) { "can't publish messages when producer is closed" }
         producer.send(producerRecord) { _, err ->
             if (err == null || !isFatalError(err)) return@send
             log.error("Shutting down rapid due to fatal error: ${err.message}", err)
             stop()
+        }
+        if (waitForFlush) {
+            producer.flush()
         }
     }
 

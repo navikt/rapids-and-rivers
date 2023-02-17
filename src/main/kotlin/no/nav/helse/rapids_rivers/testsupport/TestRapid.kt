@@ -25,11 +25,11 @@ class TestRapid : RapidsConnection() {
         notifyMessage(message, this)
     }
 
-    override fun publish(message: String) {
+    override fun publish(message: String, waitForFlush: Boolean) {
         messages.add(null to message)
     }
 
-    override fun publish(key: String, message: String) {
+    override fun publish(key: String, message: String, waitForFlush: Boolean) {
         messages.add(key to message)
     }
 

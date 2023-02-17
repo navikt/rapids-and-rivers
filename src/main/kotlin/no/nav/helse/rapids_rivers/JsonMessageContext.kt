@@ -4,12 +4,12 @@ internal class JsonMessageContext(
     private val rapidsConnection: MessageContext,
     private val packet: JsonMessage
 ) : MessageContext {
-    override fun publish(message: String) {
-        rapidsConnection.publish(populateStandardFields(message))
+    override fun publish(message: String, waitForFlush: Boolean) {
+        rapidsConnection.publish(populateStandardFields(message), waitForFlush)
     }
 
-    override fun publish(key: String, message: String) {
-        rapidsConnection.publish(key, populateStandardFields(message))
+    override fun publish(key: String, message: String, waitForFlush: Boolean) {
+        rapidsConnection.publish(key, populateStandardFields(message), waitForFlush)
     }
 
     private fun populateStandardFields(message: String) =

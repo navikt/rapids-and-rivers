@@ -56,12 +56,12 @@ class RapidApplication internal constructor(
         rapid.stop()
     }
 
-    override fun publish(message: String) {
-        rapid.publish(message)
+    override fun publish(message: String, waitForFlush: Boolean) {
+        rapid.publish(message, waitForFlush)
     }
 
-    override fun publish(key: String, message: String) {
-        rapid.publish(key, message)
+    override fun publish(key: String, message: String, waitForFlush: Boolean) {
+        rapid.publish(key, message, waitForFlush)
     }
 
     override fun rapidName(): String {

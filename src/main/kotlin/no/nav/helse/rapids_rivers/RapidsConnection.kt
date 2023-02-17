@@ -3,8 +3,8 @@ package no.nav.helse.rapids_rivers
 import org.slf4j.LoggerFactory
 
 interface MessageContext {
-    fun publish(message: String)
-    fun publish(key: String, message: String)
+    fun publish(message: String, waitForFlush: Boolean = false)
+    fun publish(key: String, message: String, waitForFlush: Boolean = false)
     fun rapidName(): String
 }
 
