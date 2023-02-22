@@ -71,6 +71,9 @@ class KafkaRapid(
             log.error("Shutting down rapid due to fatal error: ${err.message}", err)
             stop()
         }
+        if (ExperimentalFeatures.inlineFlushOnEveryProducerSend.get()) {
+            producer.flush()
+        }
     }
 
     override fun start() {
