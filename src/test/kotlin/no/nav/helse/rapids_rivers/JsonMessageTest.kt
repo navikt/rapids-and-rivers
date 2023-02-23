@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -96,6 +98,18 @@ internal class JsonMessageTest {
                 JsonMessage(InvalidJson, it)
             }
             assertTrue(it.hasErrors()) { "was not supposed to recognize $InvalidJson" }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [ "{}", "\"\"", "1", "true", "false" ])
+    fun `invalid system_participating_services`(invalidValue: String) {
+        val JsonWithSystemParticipatingServices = """{"system_participating_services": $invalidValue}"""
+        MessageProblems(JsonWithSystemParticipatingServices).also {
+            assertThrows<MessageProblems.MessageException>("should have thrown an exception: $JsonWithSystemParticipatingServices") {
+                JsonMessage(JsonWithSystemParticipatingServices, it)
+            }
+            assertTrue(it.hasErrors()) { "was not supposed to recognize $JsonWithSystemParticipatingServices" }
         }
     }
 

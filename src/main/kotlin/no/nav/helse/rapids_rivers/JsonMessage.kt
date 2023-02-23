@@ -58,12 +58,12 @@ open class JsonMessage(
                     val opprettet = LocalDateTime.now()
                     it.put(IdKey, id)
                     it.put(OpprettetKey, "$opprettet")
-                    initializeOrSetParticipatingServices(it, id, opprettet)
+                    initializeOrSetParticipatingServices(it, id, opprettet, originalMessage.problems)
                 }
             }.toString()
         }
 
-        private fun initializeOrSetParticipatingServices(node: JsonNode, id: String, opprettet: LocalDateTime) {
+        private fun initializeOrSetParticipatingServices(node: JsonNode, id: String, opprettet: LocalDateTime, problems: MessageProblems) {
             val entry = mutableMapOf(
                 "id" to id,
                 "time" to "$opprettet"
@@ -73,7 +73,8 @@ open class JsonMessage(
                 compute("image") { _, _ -> serviceImage }
             }
             if (node.path(ParticipatingServicesKey).isMissingOrNull()) (node as ObjectNode).putArray(ParticipatingServicesKey).add(objectMapper.valueToTree<ObjectNode>(entry))
-            else (node.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
+            else if(node.path(ParticipatingServicesKey) is ArrayNode) (node.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
+            else problems.severe("$ParticipatingServicesKey has invalid JSON-value. Should be an array of objects")
         }
     }
 
@@ -92,7 +93,7 @@ open class JsonMessage(
         val opprettet = LocalDateTime.now()
         if (!json.hasNonNull("@opprettet")) set(OpprettetKey, opprettet)
         set(ReadCountKey, json.path(ReadCountKey).asInt(-1) + 1)
-        initializeOrSetParticipatingServices(json, id, opprettet)
+        initializeOrSetParticipatingServices(json, id, opprettet, problems)
     }
 
     private val tracing =
