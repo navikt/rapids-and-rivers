@@ -4,13 +4,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val jvmTarget = "17"
 
-val ktorVersion = "2.1.3"
-val kafkaVersion = "3.3.1"
-val micrometerRegistryPrometheusVersion = "1.10.1"
+val ktorVersion = "2.2.3"
+val kafkaVersion = "3.4.0"
+val micrometerRegistryPrometheusVersion = "1.10.4"
 val junitJupiterVersion = "5.9.2"
-val jacksonVersion = "2.14.1"
+val jacksonVersion = "2.14.2"
 val logbackClassicVersion = "1.4.5"
-val logbackEncoderVersion = "7.2"
+val logbackEncoderVersion = "7.3"
 val awaitilityVersion = "4.2.0"
 val kafkaTestcontainerVersion = "1.17.6"
 
@@ -73,7 +73,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "7.4.2"
+    gradleVersion = "8.0.1"
 }
 
 repositories {
