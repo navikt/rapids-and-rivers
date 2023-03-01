@@ -71,9 +71,6 @@ class KafkaRapid(
             log.error("Shutting down rapid due to fatal error: ${err.message}", err)
             stop()
         }
-        if (ExperimentalFeatures.inlineFlushOnEveryProducerSend.get()) {
-            producer.flush()
-        }
     }
 
     override fun start() {
@@ -130,6 +127,9 @@ class KafkaRapid(
             currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
             throw err
         } finally {
+            if (ExperimentalFeatures.inlineFlushOnEveryProducerSend.get()) {
+                producer.flush()
+            }
             consumer.commitSync(currentPositions.mapValues { (_, offset) -> offsetMetadata(offset) })
         }
     }
