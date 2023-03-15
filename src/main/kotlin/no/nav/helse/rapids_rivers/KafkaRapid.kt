@@ -127,9 +127,6 @@ class KafkaRapid(
             currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
             throw err
         } finally {
-            if (ExperimentalFeatures.inlineFlushOnEveryProducerSend.get()) {
-                producer.flush()
-            }
             consumer.commitSync(currentPositions.mapValues { (_, offset) -> offsetMetadata(offset) })
         }
     }
