@@ -19,7 +19,7 @@ class KafkaRapid(
     consumerConfig: Properties,
     producerConfig: Properties,
     private val rapidTopic: String,
-    extraTopics: List<String> = emptyList()
+    extraTopics: List<String> = emptyList(),
 ) : RapidsConnection(), ConsumerRebalanceListener {
 
     private val log = LoggerFactory.getLogger(KafkaRapid::class.java)
@@ -121,8 +121,9 @@ class KafkaRapid(
         } catch (err: Exception) {
             log.info(
                 "due to an error during processing, positions are reset to each next message (after each record that was processed OK):" +
-                        currentPositions.map { "\tpartition=${it.key}, offset=${it.value}" }
-                            .joinToString(separator = "\n", prefix = "\n", postfix = "\n"), err
+                    currentPositions.map { "\tpartition=${it.key}, offset=${it.value}" }
+                        .joinToString(separator = "\n", prefix = "\n", postfix = "\n"),
+                err,
             )
             currentPositions.forEach { (partition, offset) -> consumer.seek(partition, offset) }
             throw err
@@ -166,7 +167,7 @@ class KafkaRapid(
     private fun pollDiganostics(records: ConsumerRecords<String, String>) = mapOf(
         "rapids_poll_id" to "${UUID.randomUUID()}",
         "rapids_poll_time" to "${LocalDateTime.now()}",
-        "rapids_poll_count" to "${records.count()}"
+        "rapids_poll_count" to "${records.count()}",
     )
 
     private fun recordDiganostics(record: ConsumerRecord<String, String>) = mapOf(
@@ -176,7 +177,7 @@ class KafkaRapid(
         "rapids_record_produced_time_type" to "${record.timestampType()}",
         "rapids_record_topic" to record.topic(),
         "rapids_record_partition" to "${record.partition()}",
-        "rapids_record_offset" to "${record.offset()}"
+        "rapids_record_offset" to "${record.offset()}",
     )
 
     private fun TopicPartition.commitSync() {
@@ -188,6 +189,7 @@ class KafkaRapid(
 
     private fun offsetMetadata(offset: Long): OffsetAndMetadata {
         val clientId = consumer.groupMetadata().groupInstanceId().map { "\"$it\"" }.orElse("null")
+
         @Language("JSON")
         val metadata = """{"time": "${LocalDateTime.now()}","groupInstanceId": $clientId}"""
         return OffsetAndMetadata(offset, metadata)
@@ -202,7 +204,6 @@ class KafkaRapid(
         producerClosed.set(true)
         tryAndLog(producer::flush)
         tryAndLog(producer::close)
-        tryAndLog(consumer::unsubscribe)
         tryAndLog(consumer::close)
     }
 
@@ -224,7 +225,7 @@ class KafkaRapid(
             consumerConfig = kafkaConfig.consumerConfig(),
             producerConfig = kafkaConfig.producerConfig(),
             rapidTopic = topic,
-            extraTopics = extraTopics
+            extraTopics = extraTopics,
         )
 
         private fun isFatalError(err: Exception) = when (err) {
@@ -232,7 +233,8 @@ class KafkaRapid(
             is RecordBatchTooLargeException,
             is RecordTooLargeException,
             is UnknownServerException,
-            is AuthorizationException -> true
+            is AuthorizationException,
+            -> true
             else -> false
         }
     }
