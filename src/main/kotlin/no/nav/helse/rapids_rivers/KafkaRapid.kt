@@ -202,7 +202,6 @@ class KafkaRapid(
         producerClosed.set(true)
         tryAndLog(producer::flush)
         tryAndLog(producer::close)
-        tryAndLog(consumer::unsubscribe)
         tryAndLog(consumer::close)
     }
 
