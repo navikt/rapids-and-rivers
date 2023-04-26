@@ -6,19 +6,19 @@ val jvmTarget = "17"
 
 val ktorVersion = "2.3.0"
 val kafkaVersion = "3.4.0"
-val micrometerRegistryPrometheusVersion = "1.10.4"
+val micrometerRegistryPrometheusVersion = "1.10.6"
 val junitJupiterVersion = "5.9.2"
-val jacksonVersion = "2.14.2"
-val logbackClassicVersion = "1.4.5"
+val jacksonVersion = "2.15.0"
+val logbackClassicVersion = "1.4.7"
 val logbackEncoderVersion = "7.3"
 val awaitilityVersion = "4.2.0"
-val kafkaTestcontainerVersion = "1.17.6"
+val kafkaTestcontainerVersion = "1.18.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm") version "1.8.21"
     id("java")
     id("maven-publish")
 }
@@ -73,7 +73,7 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "8.0.1"
+    gradleVersion = "8.1.1"
 }
 
 repositories {
