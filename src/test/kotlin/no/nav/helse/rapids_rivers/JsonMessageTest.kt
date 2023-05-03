@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.*
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -684,6 +685,21 @@ internal class JsonMessageTest {
 
         assertEquals("{\"foo\": \"bar\"}", "foo", "bar")
         assertEquals("{\"foo\": false}", "foo", false)
+        assertEquals("{\"foo\": 3.14}", "foo", 3.14)
+        assertEquals("{\"foo\": 3}", "foo", 3)
+    }
+
+    @Test
+    fun `string is not a number`() {
+        @Language("JSON")
+        val msg = """{"foo": "3"}"""
+        val key = "foo"
+        val expectedValue = 3
+        val problems = MessageProblems(msg)
+        JsonMessage(msg, problems).also {
+            it.requireValue(key, expectedValue)
+            assertTrue(problems.hasErrors())
+        }
     }
 
     @Test
@@ -864,6 +880,15 @@ internal class JsonMessageTest {
             it.requireValue(key, expectedValue)
             assertFalse(problems.hasErrors())
             assertEquals(expectedValue, it[key].textValue())
+        }
+    }
+
+    private fun assertEquals(msg: String, key: String, expectedValue: Number) {
+        val problems = MessageProblems(msg)
+        JsonMessage(msg, problems).also {
+            it.requireValue(key, expectedValue)
+            assertFalse(problems.hasErrors())
+            assertEquals(expectedValue, it[key].numberValue())
         }
     }
 

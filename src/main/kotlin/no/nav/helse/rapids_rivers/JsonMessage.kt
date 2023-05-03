@@ -199,11 +199,17 @@ open class JsonMessage(
         if (!node.isBoolean || node.booleanValue() != value) return problems.error("Required $key is not boolean $value")
         accessor(key)
     }
-
     fun requireValue(key: String, value: String) {
         val node = node(key)
         if (node.isMissingNode) return problems.error("Missing required key $key")
         if (!node.isTextual || node.asText() != value) return problems.error("Required $key is not string $value")
+        accessor(key)
+    }
+
+    fun requireValue(key: String, value: Number) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (!node.isNumber || node.numberValue() != value) return problems.error("Required $key is not number $value")
         accessor(key)
     }
 
