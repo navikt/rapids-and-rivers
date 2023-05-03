@@ -146,6 +146,13 @@ open class JsonMessage(
         accessor(key)
     }
 
+    fun demandValue(key: String, value: Number) {
+        val node = node(key)
+        if (node.isMissingNode) return problems.severe("Missing demanded key $key")
+        if (!node.isNumber || node.numberValue() != value) return problems.severe("Demanded $key is not number $value")
+        accessor(key)
+    }
+
     fun demandValue(key: String, value: Boolean) {
         val node = node(key)
         if (node.isMissingNode) problems.severe("Missing demanded key $key")

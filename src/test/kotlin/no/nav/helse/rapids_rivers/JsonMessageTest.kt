@@ -418,6 +418,24 @@ internal class JsonMessageTest {
                 }
             }
         }
+        "{\"foo\": 3.14}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    demandValue("foo", 3.14)
+                    assertFalse(problems.hasErrors())
+                    assertEquals(3.14, this["foo"].numberValue())
+                }
+            }
+        }
+        "{\"foo\": \"3.14\"}".also { json ->
+            MessageProblems(json).also { problems ->
+                JsonMessage(json, problems).apply {
+                    assertThrows<MessageProblems.MessageException> { demandValue("foo", 3.14) }
+                    assertTrue(problems.hasErrors())
+                    assertThrows(this, "foo")
+                }
+            }
+        }
     }
 
     @Test
