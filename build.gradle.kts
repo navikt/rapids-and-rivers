@@ -10,7 +10,7 @@ val micrometerRegistryPrometheusVersion = "1.10.6"
 val junitJupiterVersion = "5.9.3"
 val jacksonVersion = "2.15.0"
 val logbackClassicVersion = "1.4.7"
-val logbackEncoderVersion = "7.3"
+val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.0"
 val kafkaTestcontainerVersion = "1.18.0"
 
