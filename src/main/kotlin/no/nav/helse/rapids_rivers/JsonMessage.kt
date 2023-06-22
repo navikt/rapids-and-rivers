@@ -86,6 +86,11 @@ open class JsonMessage(
         } catch (err: JsonParseException) {
             problems.severe("Invalid JSON per Jackson library: ${err.message}")
         }
+
+        if (json !is ObjectNode) {
+            problems.severe("Incomplete json. Should be able to cast as ObjectNode.")
+        }
+
         id = json.path("@id").takeUnless { it.isMissingOrNull() }?.asText() ?: idGenerator.generateId().also {
             set("@id", it)
         }
