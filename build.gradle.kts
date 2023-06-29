@@ -4,21 +4,21 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val jvmTarget = "17"
 
-val ktorVersion = "2.3.0"
+val ktorVersion = "2.3.2"
 val kafkaVersion = "3.4.0"
-val micrometerRegistryPrometheusVersion = "1.10.6"
+val micrometerRegistryPrometheusVersion = "1.11.1"
 val junitJupiterVersion = "5.9.3"
-val jacksonVersion = "2.15.0"
-val logbackClassicVersion = "1.4.7"
-val logbackEncoderVersion = "7.3"
+val jacksonVersion = "2.15.2"
+val logbackClassicVersion = "1.4.8"
+val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.0"
-val kafkaTestcontainerVersion = "1.18.0"
+val kafkaTestcontainerVersion = "1.18.3"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.8.21"
+    kotlin("jvm") version "1.8.22"
     id("java")
     id("maven-publish")
 }
