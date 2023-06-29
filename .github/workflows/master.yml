@@ -18,18 +18,6 @@ jobs:
       - name: test and build
         run: ./gradlew build
 
-  snyk:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Gradle vulnerability check
-        uses: snyk/actions/gradle@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --org=tbd-ty7 --fail-on=all --project-name=rapids-and-rivers --configuration-matching='^runtimeClasspath'
-          command: monitor
-
   release:
     name: Create Release
     needs: build
@@ -64,7 +52,6 @@ jobs:
           prerelease: false
     outputs:
       tag: ${{ env.RELEASE_TAG }}
-
 
   publish:
     runs-on: ubuntu-latest
