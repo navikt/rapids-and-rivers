@@ -44,7 +44,7 @@ class RapidApplication internal constructor(
             rapid.start()
         } finally {
             onKtorShutdown()
-            val gracePeriod = 5000L
+            val gracePeriod = 4000L
             val forcefulShutdownTimeout = 30000L
             log.info("shutting down ktor, waiting $gracePeriod ms for workers to exit. Forcing shutdown after $forcefulShutdownTimeout ms")
             ktor.stop(gracePeriod, forcefulShutdownTimeout)

@@ -11,6 +11,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
+import kotlinx.coroutines.debug.DebugProbes
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
@@ -50,15 +51,25 @@ internal class RapidApplicationComponentTest {
     private lateinit var consumerJob: Job
     private val messages = mutableListOf<String>()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @DelicateCoroutinesApi
     @BeforeAll
     internal fun setup() {
+        DebugProbes.install()
+        CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                println(DebugProbes.dumpCoroutinesInfo())
+                delay(1000)
+            }
+        }
         kafkaContainer.start()
         testConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).apply {
             subscribe(listOf(testTopic))
         }
-        consumerJob = GlobalScope.launch {
-            while (this.isActive) testConsumer.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
+        CoroutineScope(Dispatchers.Default).launch {
+            consumerJob = GlobalScope.launch(context = CoroutineName("testConsumer.poll")) {
+                while (this.isActive) testConsumer.poll(Duration.ofSeconds(1)).forEach { messages.add(it.value()) }
+            }
         }
     }
 
@@ -237,12 +248,13 @@ internal class RapidApplicationComponentTest {
             (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
                 .withCollectorRegistry(collectorRegistry)
                 .build()
-        val job = GlobalScope.launch { rapidsConnection.start() }
+        val scope = CoroutineScope(Dispatchers.Default)
+        val job = scope.launch(CoroutineName("rapidsconn")) { rapidsConnection.start() }
         try {
             block(rapidsConnection)
         } finally {
             rapidsConnection.stop()
-            runBlocking { job.cancelAndJoin() }
+            scope.launch { job.cancelAndJoin() }
         }
     }
 

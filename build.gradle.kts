@@ -28,6 +28,7 @@ dependencies {
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
 
     api("io.ktor:ktor-server-cio:$ktorVersion")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-debug:1.3.9")
 
     api("org.apache.kafka:kafka-clients:$kafkaVersion")
 
