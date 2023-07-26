@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val jvmTarget = "17"
 
 val ktorVersion = "2.3.2"
-val kafkaVersion = "3.4.0"
+val kafkaVersion = "3.5.1"
 val micrometerRegistryPrometheusVersion = "1.11.2"
 val junitJupiterVersion = "5.9.3"
 val jacksonVersion = "2.15.2"
@@ -77,7 +77,6 @@ tasks.withType<Wrapper> {
 }
 
 repositories {
-    maven("https://packages.confluent.io/maven/")
     mavenCentral()
 }
 
