@@ -5,10 +5,17 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # Maintain dependencies for gradle
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
+    groups:
+      gradle:
+        patterns:
+          - "*"
