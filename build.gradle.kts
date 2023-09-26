@@ -4,9 +4,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val jvmTarget = "17"
 
-val ktorVersion = "2.3.3"
+val ktorVersion = "2.3.4"
 val kafkaVersion = "3.5.1"
-val micrometerRegistryPrometheusVersion = "1.11.3"
+val micrometerRegistryPrometheusVersion = "1.11.4"
 val junitJupiterVersion = "5.10.0"
 val jacksonVersion = "2.15.2"
 val logbackClassicVersion = "1.4.11"
@@ -18,7 +18,7 @@ group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.9.0"
+    kotlin("jvm") version "1.9.10"
     id("java")
     id("maven-publish")
 }
