@@ -20,6 +20,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, 'ci skip')
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Set release tag
