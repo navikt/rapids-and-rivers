@@ -75,17 +75,23 @@ open class JsonMessage(
             if (node.path(ParticipatingServicesKey).isMissingOrNull()) (node as ObjectNode).putArray(ParticipatingServicesKey).add(objectMapper.valueToTree<ObjectNode>(entry))
             else (node.path(ParticipatingServicesKey) as ArrayNode).add(objectMapper.valueToTree<JsonNode>(entry))
         }
+
+        private fun parseMessageAsJsonObject(message: String, problems: MessageProblems): ObjectNode {
+            val jsonNode = try {
+                objectMapper.readTree(message)
+            } catch (err: JsonParseException) {
+                problems.severe("Invalid JSON per Jackson library: ${err.message}")
+            }
+            if (!jsonNode.isObject) problems.severe("Incomplete json. Should be able to cast as ObjectNode.")
+            return jsonNode as ObjectNode
+        }
     }
 
-    private val json: JsonNode
+    private val json: ObjectNode
     private val recognizedKeys = mutableMapOf<String, JsonNode>()
 
     init {
-        json = try {
-            objectMapper.readTree(originalMessage)
-        } catch (err: JsonParseException) {
-            problems.severe("Invalid JSON per Jackson library: ${err.message}")
-        }
+        json = parseMessageAsJsonObject(originalMessage, problems)
         id = json.path("@id").takeUnless { it.isMissingOrNull() }?.asText() ?: idGenerator.generateId().also {
             set("@id", it)
         }
@@ -148,8 +154,8 @@ open class JsonMessage(
 
     fun demandValue(key: String, value: Number) {
         val node = node(key)
-        if (node.isMissingNode) return problems.severe("Missing demanded key $key")
-        if (!node.isNumber || node.numberValue() != value) return problems.severe("Demanded $key is not number $value")
+        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (!node.isNumber || node.numberValue() != value) problems.severe("Demanded $key is not number $value")
         accessor(key)
     }
 
@@ -322,7 +328,7 @@ open class JsonMessage(
 
     private fun node(path: String): JsonNode {
         if (!path.contains(nestedKeySeparator)) return json.path(path)
-        return path.split(nestedKeySeparator).fold(json) { result, key ->
+        return path.split(nestedKeySeparator).fold(json) { result: JsonNode, key ->
             result.path(key)
         }
     }
@@ -331,7 +337,7 @@ open class JsonMessage(
         requireNotNull(recognizedKeys[key]) { "$key is unknown; keys must be declared as required, forbidden, or interesting" }
 
     operator fun set(key: String, value: Any) {
-        (json as ObjectNode).replace(key, objectMapper.valueToTree<JsonNode>(value).also {
+        json.replace(key, objectMapper.valueToTree<JsonNode>(value).also {
             recognizedKeys[key] = it
         })
     }

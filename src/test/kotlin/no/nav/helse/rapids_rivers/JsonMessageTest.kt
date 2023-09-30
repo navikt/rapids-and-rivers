@@ -25,6 +25,7 @@ internal class JsonMessageTest {
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     private val ValidJson = "{\"foo\": \"bar\"}"
     private val InvalidJson = "foo"
+    private val ValidJsonNoObject = "[]"
 
     @Test
     fun `create message from map`() {
@@ -97,6 +98,16 @@ internal class JsonMessageTest {
                 JsonMessage(InvalidJson, it)
             }
             assertTrue(it.hasErrors()) { "was not supposed to recognize $InvalidJson" }
+        }
+    }
+
+    @Test
+    fun `valid json - but not object`() {
+        MessageProblems(ValidJsonNoObject).also {
+            assertThrows<MessageProblems.MessageException> {
+                JsonMessage(ValidJsonNoObject, it)
+            }
+            assertTrue(it.hasErrors()) { "was not supposed to recognize $ValidJsonNoObject" }
         }
     }
 
