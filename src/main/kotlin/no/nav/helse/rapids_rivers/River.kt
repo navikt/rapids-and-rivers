@@ -55,29 +55,29 @@ class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: R
 
     private fun onPacket(packet: JsonMessage, context: MessageContext) {
         packet.interestedIn("@event_name")
+        val eventName = packet["@event_name"].textValue() ?: "ukjent"
         listeners.forEach {
-            val eventName = packet["@event_name"].textValue() ?: "ukjent"
-            Metrics.onPacketHistorgram.labels(
-                context.rapidName(),
-                it.name(),
-                eventName
-            ).time {
-                it.onPacket(packet, context)
-            }
-            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "ok").inc()
+            notifyPacketListener(eventName, it, packet, context)
+        }
+    }
+
+    private fun notifyPacketListener(eventName: String, packetListener: PacketListener, packet: JsonMessage, context: MessageContext) {
+        Metrics.onMessageCounter.labels(context.rapidName(), packetListener.name(), "ok", eventName).inc()
+        Metrics.onPacketHistorgram.labels(context.rapidName(), packetListener.name(), eventName).time {
+            packetListener.onPacket(packet, context)
         }
     }
 
     private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
         listeners.forEach {
-            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "severe").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "severe", "").inc()
             it.onSevere(error, context)
         }
     }
 
     private fun onError(problems: MessageProblems, context: MessageContext) {
         listeners.forEach {
-            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "error").inc()
+            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "error", "").inc()
             it.onError(problems, context)
         }
     }

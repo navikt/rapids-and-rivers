@@ -16,7 +16,7 @@ object Metrics {
     val onMessageCounter = Counter.build()
         .name("message_counter")
         .help("Hvor mange meldinger som er lest inn")
-        .labelNames("rapid", "river", "validated")
+        .labelNames("rapid", "river", "validated", "event_name")
         .register(registry)
 
 }
