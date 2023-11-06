@@ -7,7 +7,7 @@ val jvmTarget = "17"
 val ktorVersion = "2.3.5"
 val kafkaVersion = "3.6.0"
 val micrometerRegistryPrometheusVersion = "1.11.5"
-val junitJupiterVersion = "5.10.0"
+val junitJupiterVersion = "5.10.1"
 val jacksonVersion = "2.15.3"
 val logbackClassicVersion = "1.4.11"
 val logbackEncoderVersion = "7.4"
@@ -18,7 +18,7 @@ group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "1.9.10"
+    kotlin("jvm") version "1.9.20"
     id("java")
     id("maven-publish")
 }
