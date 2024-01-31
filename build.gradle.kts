@@ -4,15 +4,15 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val jvmTarget = "17"
 
-val ktorVersion = "2.3.7"
+val ktorVersion = "2.3.8"
 val kafkaVersion = "3.6.1"
-val micrometerRegistryPrometheusVersion = "1.12.1"
+val micrometerRegistryPrometheusVersion = "1.12.2"
 val junitJupiterVersion = "5.10.1"
 val jacksonVersion = "2.16.1"
 val logbackClassicVersion = "1.4.14"
 val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.0"
-val kafkaTestcontainerVersion = "1.19.3"
+val kafkaTestcontainerVersion = "1.19.4"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
