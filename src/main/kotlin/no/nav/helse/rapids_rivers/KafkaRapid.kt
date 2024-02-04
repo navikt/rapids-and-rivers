@@ -195,10 +195,10 @@ class KafkaRapid(
         } else {
             log.info("stopped consuming messages after receiving stop signal")
         }
+        tryAndLog(consumer::close)
         producerClosed.set(true)
         tryAndLog(producer::flush)
         tryAndLog(producer::close)
-        tryAndLog(consumer::close)
     }
 
     private fun tryAndLog(block: () -> Unit) {
