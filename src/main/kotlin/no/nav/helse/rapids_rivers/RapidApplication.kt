@@ -136,7 +136,7 @@ class RapidApplication internal constructor(
             consumerProperties = Properties().apply {
                 put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-${config.instanceId}")
                 put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, config.instanceId)
-                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, config.autoOffsetResetConfig ?: OffsetResetStrategy.LATEST.name)
+                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, config.autoOffsetResetConfig?.lowercase() ?: OffsetResetStrategy.LATEST.name.lowercase())
                 put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "${config.maxRecords}")
                 put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "${config.maxIntervalMs}")
             },
