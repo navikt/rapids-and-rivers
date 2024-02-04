@@ -6,6 +6,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.prometheus.client.CollectorRegistry
@@ -75,8 +77,8 @@ internal class RapidApplicationComponentTest {
     fun `custom endpoint`() {
         val expectedText = "Hello, World!"
         val endpoint = "/custom"
-        withRapid({
-            withKtorModule {
+        withRapid({ port ->
+            embeddedServer(CIO, port = port) {
                 routing {
                     get(endpoint) {
                         call.respondText(expectedText, ContentType.Text.Plain)
@@ -204,7 +206,7 @@ internal class RapidApplicationComponentTest {
 
     @DelicateCoroutinesApi
     private fun withRapid(
-        config: RapidApplication.Builder.() -> Unit = { },
+        ktor: (port: Int) -> ApplicationEngine? = { null },
         collectorRegistry: CollectorRegistry = CollectorRegistry(),
         block: (RapidsConnection) -> Unit
     ) {
@@ -216,11 +218,11 @@ internal class RapidApplicationComponentTest {
             rapidTopic = testTopic,
             kafkaConfig = localConfig,
             consumerGroupId = "component-test",
-            httpPort = randomPort
+            httpPort = randomPort,
+            collectorRegistry = collectorRegistry
         )
         val builder = RapidApplication.Builder(rapidApplicationConfig)
-            .withCollectorRegistry(collectorRegistry)
-            .apply(config)
+        ktor(randomPort)?.let { builder.withKtor(it) }
         val rapidsConnection = builder.build()
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {

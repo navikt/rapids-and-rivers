@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRapid(
     factory: ConsumerProducerFactory,
-    private val groupId: String,
+    groupId: String,
     private val rapidTopic: String,
     consumerProperties: Properties = Properties(),
     producerProperties: Properties = Properties(),

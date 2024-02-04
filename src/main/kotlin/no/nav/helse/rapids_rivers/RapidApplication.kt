@@ -1,7 +1,6 @@
 package no.nav.helse.rapids_rivers
 
 import io.ktor.server.application.*
-import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.delay
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory
 import java.net.InetAddress
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 class RapidApplication internal constructor(
     private val ktor: ApplicationEngine,
@@ -123,7 +121,7 @@ class RapidApplication internal constructor(
 
         fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) =
             Builder(RapidApplicationConfig.fromEnv(env))
-                .build(configure, CIO)
+                .build(configure)
     }
 
     class Builder(private val config: RapidApplicationConfig) {
@@ -132,7 +130,6 @@ class RapidApplication internal constructor(
             Thread.currentThread().setUncaughtExceptionHandler(::uncaughtExceptionHandler)
         }
 
-        private val isKtorRunning = AtomicBoolean(false)
         private val rapid = KafkaRapid(
             factory = ConsumerProducerFactory(config.kafkaConfig),
             groupId = config.consumerGroupId,
@@ -151,47 +148,34 @@ class RapidApplication internal constructor(
             extraTopics = config.extraTopics
         )
 
-        private val ktor = KtorBuilder()
-            .log(log)
-            .port(config.httpPort)
-            .preStopHook(this::handlePreStopRequest)
-            .liveness(rapid::isRunning)
-            .readiness(rapid::isReady)
-            .metrics(rapid.getMetrics())
+        private var ktor: ApplicationEngine? = null
+        private val modules = mutableListOf<Application.() -> Unit>()
 
-        fun withCollectorRegistry(registry: CollectorRegistry = CollectorRegistry.defaultRegistry) = apply {
-            ktor.withCollectorRegistry(registry)
+        fun withKtor(ktor: ApplicationEngine) = apply {
+            this.ktor = ktor
         }
 
         fun withKtorModule(module: Application.() -> Unit) = apply {
-            ktor.module(module)
+            this.modules.add(module)
         }
 
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
-            return build(configure, CIO)
-        }
-
-        fun <TEngine : ApplicationEngine, TConfiguration : ApplicationEngine.Configuration> build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, factory: ApplicationEngineFactory<TEngine, TConfiguration>): RapidsConnection {
-            val app = ktor.build(factory)
+            val app = ktor ?: defaultKtorApp()
             configure(app, rapid)
-            return RapidApplication(app, rapid, config.appName, config.instanceId, this::onKtorStartup, this::onKtorShutdown)
+            return RapidApplication(app, rapid, config.appName, config.instanceId)
         }
 
-        private suspend fun handlePreStopRequest() {
-            rapid.stop()
-            // block the preStopHook call from returning until
-            // ktor is ready to shutdown, which means that the KafkaRapid has shutdown
-            while (isKtorRunning.get()) {
-                delay(1000)
-            }
-        }
-
-        private fun onKtorStartup() {
-            isKtorRunning.set(true)
-        }
-
-        private fun onKtorShutdown() {
-            isKtorRunning.set(false)
+        private fun defaultKtorApp(): ApplicationEngine {
+            val stopHook = PreStopHook(rapid)
+            return defaultNaisApplication(
+                port = config.httpPort,
+                extraMetrics = rapid.getMetrics(),
+                collectorRegistry = config.collectorRegistry,
+                isAliveCheck = rapid::isRunning,
+                isReadyCheck = rapid::isReady,
+                preStopHook = stopHook::handlePreStopRequest,
+                extraModules = modules
+            )
         }
 
         private fun uncaughtExceptionHandler(thread: Thread, err: Throwable) {
@@ -210,7 +194,8 @@ class RapidApplication internal constructor(
         internal val autoCommit: Boolean? = false,
         maxIntervalMs: Long? = null,
         maxRecords: Int? = null,
-        internal val httpPort: Int = 8080
+        internal val httpPort: Int = 8080,
+        internal val collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
     ) {
         internal val maxRecords = maxRecords ?: ConsumerConfig.DEFAULT_MAX_POLL_RECORDS
         // assuming a "worst case" scenario where it takes 4 seconds to process each message;
