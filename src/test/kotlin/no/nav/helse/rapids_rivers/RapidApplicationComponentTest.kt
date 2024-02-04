@@ -4,19 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.ktor.server.application.*
 import io.ktor.http.*
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.*
-import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.common.config.SaslConfigs
-import org.apache.kafka.common.serialization.StringDeserializer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -45,6 +39,8 @@ internal class RapidApplicationComponentTest {
     private val testTopic = "a-test-topic"
     private val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
 
+    private val localConfig = LocalKafkaConfig(kafkaContainer)
+    private val factory = ConsumerProducerFactory(localConfig)
     private lateinit var appUrl: String
     private lateinit var testConsumer: Consumer<String, String>
     private lateinit var consumerJob: Job
@@ -54,7 +50,7 @@ internal class RapidApplicationComponentTest {
     @BeforeAll
     internal fun setup() {
         kafkaContainer.start()
-        testConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer()).apply {
+        testConsumer = factory.createConsumer("test-consumer").apply {
             subscribe(listOf(testTopic))
         }
         consumerJob = GlobalScope.launch {
@@ -69,28 +65,6 @@ internal class RapidApplicationComponentTest {
         kafkaContainer.stop()
     }
 
-    private fun consumerProperties(): MutableMap<String, Any>? {
-        return HashMap<String, Any>().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
-            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-            put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer")
-            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-        }
-    }
-
-    private fun createConfig(): Map<String, String> {
-        val randomPort = ServerSocket(0).use { it.localPort }
-        appUrl = "http://localhost:$randomPort"
-        return mapOf(
-            "KAFKA_BOOTSTRAP_SERVERS" to kafkaContainer.bootstrapServers,
-            "KAFKA_CONSUMER_GROUP_ID" to "component-test",
-            "KAFKA_RAPID_TOPIC" to testTopic,
-            "RAPID_APP_NAME" to "app-name",
-            "HTTP_PORT" to "$randomPort"
-        )
-    }
-
     @BeforeEach
     fun clearMessages() {
         messages.clear()
@@ -101,14 +75,15 @@ internal class RapidApplicationComponentTest {
     fun `custom endpoint`() {
         val expectedText = "Hello, World!"
         val endpoint = "/custom"
-        withRapid(RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig()))
-            .withKtorModule {
+        withRapid({
+            withKtorModule {
                 routing {
                     get(endpoint) {
                         call.respondText(expectedText, ContentType.Text.Plain)
                     }
                 }
-            }) {
+            }
+        }) {
             await("wait until the custom endpoint responds")
                 .atMost(40, SECONDS)
                 .until { isOkResponse(endpoint) }
@@ -119,7 +94,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @Test
     fun `nais endpoints`() {
-        withRapid() { rapid ->
+        withRapid { rapid ->
             await("wait until the rapid has started")
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/isalive") }
@@ -139,7 +114,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @Test
     fun `pre stop hook`() {
-        withRapid() { _ ->
+        withRapid { _ ->
             await("wait until the rapid has started")
                 .atMost(40, SECONDS)
                 .until { isOkResponse("/isalive") }
@@ -190,7 +165,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @Test
     fun `creates events for up and down`() {
-        withRapid() { rapid ->
+        withRapid { rapid ->
             waitForEvent("application_up")
             rapid.stop()
             waitForEvent("application_down")
@@ -200,7 +175,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @Test
     fun `ping pong`() {
-        withRapid() { rapid ->
+        withRapid { rapid ->
             waitForEvent("application_ready")
 
             val pingId = UUID.randomUUID().toString()
@@ -229,14 +204,24 @@ internal class RapidApplicationComponentTest {
 
     @DelicateCoroutinesApi
     private fun withRapid(
-        builder: RapidApplication.Builder? = null,
+        config: RapidApplication.Builder.() -> Unit = { },
         collectorRegistry: CollectorRegistry = CollectorRegistry(),
         block: (RapidsConnection) -> Unit
     ) {
-        val rapidsConnection =
-            (builder ?: RapidApplication.Builder(RapidApplication.RapidApplicationConfig.fromEnv(createConfig())))
-                .withCollectorRegistry(collectorRegistry)
-                .build()
+        val randomPort = ServerSocket(0).use { it.localPort }
+        appUrl = "http://localhost:$randomPort"
+        val rapidApplicationConfig = RapidApplication.RapidApplicationConfig(
+            appName = "app-name",
+            instanceId = "app-name-0",
+            rapidTopic = testTopic,
+            kafkaConfig = localConfig,
+            consumerGroupId = "component-test",
+            httpPort = randomPort
+        )
+        val builder = RapidApplication.Builder(rapidApplicationConfig)
+            .withCollectorRegistry(collectorRegistry)
+            .apply(config)
+        val rapidsConnection = builder.build()
         val job = GlobalScope.launch { rapidsConnection.start() }
         try {
             block(rapidsConnection)

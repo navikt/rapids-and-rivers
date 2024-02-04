@@ -2,12 +2,9 @@ package no.nav.helse.rapids_rivers
 
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics
 import org.apache.kafka.clients.consumer.*
-import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.*
-import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import org.intellij.lang.annotations.Language
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -16,25 +13,24 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 class KafkaRapid(
-    consumerConfig: Properties,
-    producerConfig: Properties,
+    factory: ConsumerProducerFactory,
+    private val groupId: String,
     private val rapidTopic: String,
+    consumerProperties: Properties = Properties(),
+    producerProperties: Properties = Properties(),
+    private val autoCommit: Boolean = false,
     extraTopics: List<String> = emptyList()
 ) : RapidsConnection(), ConsumerRebalanceListener {
-
-    private val log = LoggerFactory.getLogger(KafkaRapid::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     private val running = AtomicBoolean(Stopped)
     private val ready = AtomicBoolean(false)
     private val producerClosed = AtomicBoolean(false)
 
-    private val stringDeserializer = StringDeserializer()
-    private val stringSerializer = StringSerializer()
-    private val autoCommit =
-        consumerConfig[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG]?.let { if (it is Boolean) it else "true" == "$it".lowercase() }
-            ?: false
-    private val consumer = KafkaConsumer(consumerConfig, stringDeserializer, stringDeserializer)
-    private val producer = KafkaProducer(producerConfig, stringSerializer, stringSerializer)
+    private val consumer = factory.createConsumer(groupId, consumerProperties.apply {
+        if (!autoCommit) put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+    })
+    private val producer = factory.createProducer(producerProperties)
 
     private val topics = listOf(rapidTopic) + extraTopics
 
@@ -218,13 +214,6 @@ class KafkaRapid(
     companion object {
         private const val Stopped = false
         private const val Started = true
-
-        fun create(kafkaConfig: KafkaConfig, topic: String, extraTopics: List<String> = emptyList()) = KafkaRapid(
-            consumerConfig = kafkaConfig.consumerConfig(),
-            producerConfig = kafkaConfig.producerConfig(),
-            rapidTopic = topic,
-            extraTopics = extraTopics
-        )
 
         private fun isFatalError(err: Exception) = when (err) {
             is InvalidTopicException,

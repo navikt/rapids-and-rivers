@@ -1,14 +1,16 @@
 package no.nav.helse.rapids_rivers
 
-import io.ktor.server.application.Application
-import io.ktor.server.cio.CIO
+import io.ktor.server.application.*
+import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.delay
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.OffsetResetStrategy
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.FileNotFoundException
 import java.net.InetAddress
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -119,7 +121,9 @@ class RapidApplication internal constructor(
     companion object {
         private val log = LoggerFactory.getLogger(RapidApplication::class.java)
 
-        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) = Builder(RapidApplicationConfig.fromEnv(env)).build(configure, CIO)
+        fun create(env: Map<String, String>, configure: (ApplicationEngine, KafkaRapid) -> Unit = {_, _ -> }) =
+            Builder(RapidApplicationConfig.fromEnv(env))
+                .build(configure, CIO)
     }
 
     class Builder(private val config: RapidApplicationConfig) {
@@ -129,7 +133,23 @@ class RapidApplication internal constructor(
         }
 
         private val isKtorRunning = AtomicBoolean(false)
-        private val rapid = KafkaRapid.create(config.kafkaConfig, config.rapidTopic, config.extraTopics)
+        private val rapid = KafkaRapid(
+            factory = ConsumerProducerFactory(config.kafkaConfig),
+            groupId = config.consumerGroupId,
+            consumerProperties = Properties().apply {
+                put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-${config.instanceId}")
+                put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, config.instanceId)
+                put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, config.autoOffsetResetConfig ?: OffsetResetStrategy.LATEST)
+                put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "${config.maxRecords}")
+                put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "${config.maxIntervalMs}")
+            },
+            producerProperties = Properties().apply {
+                put(ProducerConfig.CLIENT_ID_CONFIG, "producer-${config.instanceId}")
+            },
+            autoCommit = config.autoCommit ?: false,
+            rapidTopic = config.rapidTopic,
+            extraTopics = config.extraTopics
+        )
 
         private val ktor = KtorBuilder()
             .log(log)
@@ -184,65 +204,34 @@ class RapidApplication internal constructor(
         internal val instanceId: String,
         internal val rapidTopic: String,
         internal val extraTopics: List<String> = emptyList(),
-        internal val kafkaConfig: KafkaConfig,
+        internal val kafkaConfig: Config,
+        internal val consumerGroupId: String,
+        internal val autoOffsetResetConfig: String? = null,
+        internal val autoCommit: Boolean? = false,
+        maxIntervalMs: Long? = null,
+        maxRecords: Int? = null,
         internal val httpPort: Int = 8080
     ) {
+        internal val maxRecords = maxRecords ?: ConsumerConfig.DEFAULT_MAX_POLL_RECORDS
+        // assuming a "worst case" scenario where it takes 4 seconds to process each message;
+        // then set MAX_POLL_INTERVAL_MS_CONFIG 2 minutes above this "worst case" limit so
+        // the broker doesn't think we have died (and revokes partitions)
+        internal val maxIntervalMs: Long = maxIntervalMs ?: Duration.ofSeconds(120 + this.maxRecords * 4.toLong()).toMillis()
+
         companion object {
-            fun fromEnv(env: Map<String, String>) = generateInstanceId(env).let { instanceId ->
-                RapidApplicationConfig(
-                    appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured")
-                        .let { null },
-                    instanceId = instanceId,
-                    rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
-                    extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
-                    kafkaConfig = kafkaConfig(env, instanceId),
-                    httpPort = env["HTTP_PORT"]?.toInt() ?: 8080
-                )
-            }
-
-            private fun kafkaConfig(env: Map<String, String>, instanceId: String): KafkaConfig {
-                val preferOnPrem = env["KAFKA_PREFER_ON_PREM"]?.let { it.lowercase() == "true"} ?: false
-                if (preferOnPrem || !gcpConfigAvailable(env)) return onPremConfig(env, instanceId)
-                return gcpConfig(env, instanceId)
-            }
-
-            private fun gcpConfigAvailable(env: Map<String, String>) =
-                env.containsKey("KAFKA_BROKERS") && env.containsKey("KAFKA_CREDSTORE_PASSWORD")
-
-            private fun gcpConfig(env: Map<String, String>, instanceId: String) =
-                KafkaConfig(
-                    bootstrapServers = env.getValue("KAFKA_BROKERS"),
-                    consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
-                    clientId = instanceId,
-                    username = null,
-                    password = null,
-                    truststore = env["KAFKA_TRUSTSTORE_PATH"],
-                    truststorePassword = env.getValue("KAFKA_CREDSTORE_PASSWORD"),
-                    keystoreLocation = env.getValue("KAFKA_KEYSTORE_PATH"),
-                    keystorePassword = env.getValue("KAFKA_CREDSTORE_PASSWORD"),
-                    autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.lowercase() },
-                    maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
-                    maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
-                )
-
-
-            private fun onPremConfig(env: Map<String, String>, instanceId: String) =
-                KafkaConfig(
-                    bootstrapServers = env.getValue("KAFKA_BOOTSTRAP_SERVERS"),
-                    consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
-                    clientId = instanceId,
-                    username = "/var/run/secrets/nais.io/service_user/username".readFile(),
-                    password = "/var/run/secrets/nais.io/service_user/password".readFile(),
-                    truststore = env["NAV_TRUSTSTORE_PATH"],
-                    truststorePassword = env["NAV_TRUSTSTORE_PASSWORD"],
-                    keystoreLocation = null,
-                    keystorePassword = null,
-                    autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
-                    autoCommit = env["KAFKA_AUTO_COMMIT"]?.let { "true" == it.lowercase() },
-                    maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toInt(),
-                    maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt()
-                )
+            fun fromEnv(env: Map<String, String>, kafkaConfig: Config = AivenConfig.default) = RapidApplicationConfig(
+                appName = env["RAPID_APP_NAME"] ?: generateAppName(env) ?: log.info("app name not configured").let { null },
+                instanceId = generateInstanceId(env),
+                rapidTopic = env.getValue("KAFKA_RAPID_TOPIC"),
+                extraTopics = env["KAFKA_EXTRA_TOPIC"]?.split(',')?.map(String::trim) ?: emptyList(),
+                kafkaConfig = kafkaConfig,
+                consumerGroupId = env.getValue("KAFKA_CONSUMER_GROUP_ID"),
+                autoOffsetResetConfig = env["KAFKA_RESET_POLICY"],
+                autoCommit = env["KAFKA_AUTO_COMMIT"]?.toBoolean(),
+                maxIntervalMs = env["KAFKA_MAX_POLL_INTERVAL_MS"]?.toLong(),
+                maxRecords = env["KAFKA_MAX_RECORDS"]?.toInt() ?: ConsumerConfig.DEFAULT_MAX_POLL_RECORDS,
+                httpPort =  env["HTTP_PORT"]?.toInt() ?: 8080
+            )
 
             private fun generateInstanceId(env: Map<String, String>): String {
                 if (env.containsKey("NAIS_APP_NAME")) return InetAddress.getLocalHost().hostName
@@ -258,10 +247,3 @@ class RapidApplication internal constructor(
         }
     }
 }
-
-private fun String.readFile() =
-    try {
-        File(this).readText(Charsets.UTF_8)
-    } catch (err: FileNotFoundException) {
-        null
-    }

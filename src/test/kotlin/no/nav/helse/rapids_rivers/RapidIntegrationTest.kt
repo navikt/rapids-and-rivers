@@ -4,21 +4,12 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlinx.coroutines.*
-import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.AdminClient
-import org.apache.kafka.clients.admin.KafkaAdminClient
 import org.apache.kafka.clients.consumer.Consumer
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.Producer
-import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.config.SaslConfigs
-import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.kafka.common.serialization.StringSerializer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -46,7 +37,8 @@ internal class RapidIntegrationTest {
     private lateinit var kafkaConsumer: Consumer<String, String>
     private lateinit var kafkaAdmin: AdminClient
 
-    private lateinit var config: KafkaConfig
+    private val localConfig = LocalKafkaConfig(kafkaContainer)
+    private val factory: ConsumerProducerFactory = ConsumerProducerFactory(localConfig)
     private lateinit var rapid: KafkaRapid
     private lateinit var rapidJob: Job
 
@@ -54,15 +46,10 @@ internal class RapidIntegrationTest {
     internal fun setup() {
         kafkaContainer.start()
 
-        kafkaProducer = KafkaProducer(producerProperties(), StringSerializer(), StringSerializer())
-        kafkaConsumer = KafkaConsumer(consumerProperties(), StringDeserializer(), StringDeserializer())
-        kafkaAdmin = KafkaAdminClient.create(consumerProperties())
+        kafkaProducer = factory.createProducer()
+        kafkaConsumer = factory.createConsumer("integration-test")
+        kafkaAdmin = factory.adminClient()
         kafkaConsumer.subscribe(listOf(testTopic))
-
-        config = KafkaConfig(
-            bootstrapServers = kafkaContainer.bootstrapServers,
-            consumerGroupId = consumerId
-        )
     }
 
     @AfterAll
@@ -253,7 +240,7 @@ internal class RapidIntegrationTest {
     }
 
     private fun createTestRapid(): KafkaRapid {
-        return KafkaRapid(config.consumerConfig(), config.producerConfig(), testTopic, listOf(anotherTestTopic))
+        return KafkaRapid(factory, consumerId, testTopic, extraTopics = listOf(anotherTestTopic))
     }
 
     private fun testRiver(eventName: String, serviceId: String) {
@@ -293,24 +280,4 @@ internal class RapidIntegrationTest {
         return requireNotNull(future).get()
     }
 
-    private fun producerProperties() =
-        Properties().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
-            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-            put(ProducerConfig.ACKS_CONFIG, "all")
-            put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
-            put(ProducerConfig.LINGER_MS_CONFIG, "0")
-            put(ProducerConfig.RETRIES_CONFIG, "0")
-            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-        }
-
-    private fun consumerProperties(): MutableMap<String, Any> {
-        return HashMap<String, Any>().apply {
-            put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.bootstrapServers)
-            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT")
-            put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-            put(ConsumerConfig.GROUP_ID_CONFIG, "integration-test")
-            put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-        }
-    }
 }
