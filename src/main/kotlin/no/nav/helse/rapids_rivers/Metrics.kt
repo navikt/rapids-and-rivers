@@ -19,4 +19,10 @@ object Metrics {
         .labelNames("rapid", "river", "validated", "event_name")
         .register(registry)
 
+    val keysAccessed = Counter.build()
+        .name("message_keys_counter")
+        .help("Hvilke nøkler som er i bruk")
+        .labelNames("event_name", "accessor_key")
+        .register(registry)
+
 }

@@ -323,6 +323,8 @@ open class JsonMessage(
     }
 
     private fun accessor(key: String) {
+        val eventName = json.path(EventNameKey).asText().takeUnless { it.isBlank() } ?: "unknown_event"
+        Metrics.keysAccessed.labels(eventName, key).inc()
         recognizedKeys.computeIfAbsent(key) { node(key) }
     }
 
