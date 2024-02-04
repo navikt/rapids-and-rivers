@@ -1,18 +1,16 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+val jvmTarget = 21
 
-val jvmTarget = "17"
-
-val ktorVersion = "2.3.7"
+val ktorVersion = "2.3.8"
 val kafkaVersion = "3.6.1"
-val micrometerRegistryPrometheusVersion = "1.12.1"
-val junitJupiterVersion = "5.10.1"
+val micrometerRegistryPrometheusVersion = "1.12.2"
+val junitJupiterVersion = "5.10.2"
 val jacksonVersion = "2.16.1"
 val logbackClassicVersion = "1.4.14"
 val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.0"
-val kafkaTestcontainerVersion = "1.19.3"
+val kafkaTestcontainerVersion = "1.19.4"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -46,34 +44,31 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.toVersion(jvmTarget)
-    targetCompatibility = JavaVersion.toVersion(jvmTarget)
-
     withSourcesJar()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = jvmTarget
-}
-
-tasks.named<KotlinCompile>("compileTestKotlin") {
-    kotlinOptions.jvmTarget = jvmTarget
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-    testLogging {
-        events("skipped", "failed")
-        showExceptions = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = TestExceptionFormat.FULL
-        showStandardStreams = true
+tasks {
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(jvmTarget)
+        }
     }
-}
 
-tasks.withType<Wrapper> {
-    gradleVersion = "8.3"
+    withType<Test> {
+        useJUnitPlatform()
+        testLogging {
+            events("skipped", "failed")
+            showExceptions = true
+            showStackTraces = true
+            showCauses = true
+            exceptionFormat = TestExceptionFormat.FULL
+            showStandardStreams = true
+        }
+    }
+
+    withType<Wrapper> {
+        gradleVersion = "8.6"
+    }
 }
 
 repositories {
