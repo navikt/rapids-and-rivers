@@ -35,7 +35,8 @@ fun defaultNaisApplication(
     isAliveCheck: () -> Boolean = { true },
     isReadyCheck: () -> Boolean = { true },
     preStopHook: suspend () -> Unit = { },
-    extraModules: List<Application.() -> Unit> = emptyList()
+    extraModules: List<Application.() -> Unit> = emptyList(),
+    cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { },
 ) = embeddedServer(CIO, applicationEngineEnvironment {
     log = LoggerFactory.getLogger(this::class.java)
     connectors.add(EngineConnectorBuilder().apply {
@@ -46,7 +47,7 @@ fun defaultNaisApplication(
     module(healthEndpoint(isReadyEndpoint, isReadyCheck))
     module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
     modules.addAll(extraModules)
-})
+}, cioConfiguration)
 private fun healthEndpoint(endpoint: String, check: () -> Boolean) = fun Application.() {
     routing {
         get(endpoint) {

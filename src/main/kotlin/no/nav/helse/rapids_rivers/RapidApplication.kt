@@ -1,6 +1,7 @@
 package no.nav.helse.rapids_rivers
 
 import io.ktor.server.application.*
+import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.prometheus.client.CollectorRegistry
 import kotlinx.coroutines.delay
@@ -159,13 +160,13 @@ class RapidApplication internal constructor(
             this.modules.add(module)
         }
 
-        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }): RapidsConnection {
-            val app = ktor ?: defaultKtorApp()
+        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
+            val app = ktor ?: defaultKtorApp(cioConfiguration)
             configure(app, rapid)
             return RapidApplication(app, rapid, config.appName, config.instanceId)
         }
 
-        private fun defaultKtorApp(): ApplicationEngine {
+        private fun defaultKtorApp(cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit): ApplicationEngine {
             val stopHook = PreStopHook(rapid)
             return defaultNaisApplication(
                 port = config.httpPort,
@@ -174,7 +175,8 @@ class RapidApplication internal constructor(
                 isAliveCheck = rapid::isRunning,
                 isReadyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
-                extraModules = modules
+                extraModules = modules,
+                cioConfiguration = cioConfiguration
             )
         }
 
