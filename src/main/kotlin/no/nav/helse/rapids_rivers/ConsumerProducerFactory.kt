@@ -19,19 +19,11 @@ class ConsumerProducerFactory(private val config: Config) {
     private val stringSerializer = StringSerializer()
 
     internal fun createConsumer(groupId: String, properties: Properties = Properties()): KafkaConsumer<String, String> {
-        return KafkaConsumer(config.consumerConfig(groupId, properties), stringDeserializer, stringDeserializer).also {
-            Runtime.getRuntime().addShutdownHook(Thread {
-                it.wakeup()
-            })
-        }
+        return KafkaConsumer(config.consumerConfig(groupId, properties), stringDeserializer, stringDeserializer)
     }
 
     fun createProducer(properties: Properties = Properties()): KafkaProducer<String, String> {
-        return KafkaProducer(config.producerConfig(properties), stringSerializer, stringSerializer).also {
-            Runtime.getRuntime().addShutdownHook(Thread {
-                it.close()
-            })
-        }
+        return KafkaProducer(config.producerConfig(properties), stringSerializer, stringSerializer)
     }
 
     fun adminClient(properties: Properties = Properties()) = AdminClient.create(config.adminConfig(properties))
