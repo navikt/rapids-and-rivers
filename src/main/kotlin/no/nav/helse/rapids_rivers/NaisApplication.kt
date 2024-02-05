@@ -47,7 +47,10 @@ fun defaultNaisApplication(
     module(healthEndpoint(isReadyEndpoint, isReadyCheck))
     module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
     modules.addAll(extraModules)
-}, cioConfiguration)
+}) {
+    apply(cioConfiguration)
+    LoggerFactory.getLogger(this::class.java).info("CIO-configuration: parallelism=$parallelism,connectionGroupSize=$connectionGroupSize,workerGroupSize=$workerGroupSize,callGroupSize=$callGroupSize")
+}
 private fun healthEndpoint(endpoint: String, check: () -> Boolean) = fun Application.() {
     routing {
         get(endpoint) {
