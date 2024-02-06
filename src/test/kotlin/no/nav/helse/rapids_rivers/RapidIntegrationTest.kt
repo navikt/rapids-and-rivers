@@ -19,6 +19,7 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.SECONDS
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -168,6 +169,26 @@ internal class RapidIntegrationTest {
     }
 
     @Test
+    fun `ignore tombstone messages`() {
+        val serviceId = "my-service"
+        val eventName = "heartbeat"
+
+        testRiver(eventName, serviceId)
+        val recordMetadata = waitForReply(testTopic, serviceId, eventName, null)
+
+        val offsets = kafkaAdmin
+            ?.listConsumerGroupOffsets(consumerId)
+            ?.partitionsToOffsetAndMetadata()
+            ?.get()
+            ?: fail { "was not able to fetch committed offset for consumer $consumerId" }
+        val actualOffset = offsets.getValue(TopicPartition(recordMetadata.topic(), recordMetadata.partition()))
+        val metadata = actualOffset.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
+        assertTrue(actualOffset.offset() >= recordMetadata.offset())
+        assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
+    }
+
+    @Test
     fun `read and produce message`() {
         val serviceId = "my-service"
         val eventName = "heartbeat"
@@ -258,26 +279,22 @@ internal class RapidIntegrationTest {
         }
     }
 
-    private fun waitForReply(topic: String, serviceId: String, eventName: String, event: String): RecordMetadata {
-        var future: Future<RecordMetadata>? = null
+    private fun waitForReply(topic: String, serviceId: String, eventName: String, event: String?): RecordMetadata {
         val sentMessages = mutableListOf<String>()
+        val key = UUID.randomUUID().toString()
+        val recordMetadata = kafkaProducer.send(ProducerRecord(topic, key, event)).get(5000, SECONDS)
+        sentMessages.add(key)
         await("wait until we get a reply")
             .atMost(20, SECONDS)
             .until {
-                val key = UUID.randomUUID().toString()
-                future = kafkaProducer.send(ProducerRecord(topic, key, event))
-                sentMessages.add(key)
-
                 kafkaConsumer.poll(Duration.ZERO).forEach {
                     if (!sentMessages.contains(it.key())) return@forEach
-                    val json = objectMapper.readTree(it.value())
-                    if (eventName != json.path("@event").asText()) return@forEach
-                    if (serviceId != json.path("service_id").asText()) return@forEach
+                    if (it.key() != key) return@forEach
                     return@until true
                 }
                 return@until false
             }
-        return requireNotNull(future).get()
+        return recordMetadata
     }
 
 }

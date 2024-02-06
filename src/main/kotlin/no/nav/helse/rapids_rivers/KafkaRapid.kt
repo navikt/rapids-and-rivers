@@ -129,8 +129,9 @@ class KafkaRapid(
 
     private fun onRecord(record: ConsumerRecord<String, String>) {
         withMDC(recordDiganostics(record)) {
+            val recordValue = record.value() ?: return@withMDC log.info("ignoring record with offset ${record.offset()} in partition ${record.partition()} because value is null (tombstone)")
             val context = KeyMessageContext(this, record.key())
-            notifyMessage(record.value(), context)
+            notifyMessage(recordValue, context)
         }
     }
 
