@@ -11,6 +11,7 @@ val logbackClassicVersion = "1.4.14"
 val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.0"
 val kafkaTestcontainerVersion = "1.19.4"
+val otelVersion = "2.1.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -34,6 +35,8 @@ dependencies {
 
     api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
+
+    implementation("io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:$otelVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

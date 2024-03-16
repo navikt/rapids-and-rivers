@@ -1,5 +1,7 @@
 package no.nav.helse.rapids_rivers
 
+import io.opentelemetry.instrumentation.annotations.SpanAttribute
+import io.opentelemetry.instrumentation.annotations.WithSpan
 import no.nav.helse.rapids_rivers.River.PacketListener.Companion.Name
 import java.util.*
 
@@ -61,7 +63,8 @@ class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: R
         }
     }
 
-    private fun notifyPacketListener(eventName: String, packetListener: PacketListener, packet: JsonMessage, context: MessageContext) {
+    @WithSpan
+    private fun notifyPacketListener(@SpanAttribute("eventName") eventName: String, packetListener: PacketListener, packet: JsonMessage, context: MessageContext) {
         Metrics.onMessageCounter.labels(context.rapidName(), packetListener.name(), "ok", eventName).inc()
         Metrics.onPacketHistorgram.labels(context.rapidName(), packetListener.name(), eventName).time {
             packetListener.onPacket(packet, context)
