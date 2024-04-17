@@ -3,7 +3,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 val jvmTarget = 21
 
 val ktorVersion = "2.3.8"
-val kafkaVersion = "3.6.1"
+val kafkaVersion = "3.7.0"
 val micrometerRegistryPrometheusVersion = "1.12.3"
 val junitJupiterVersion = "5.10.2"
 val jacksonVersion = "2.16.1"
