@@ -95,8 +95,10 @@ internal class MyCoolApp(
 - Rivers angis med miljøvariabel `KAFKA_EXTRA_TOPIC`(Kommaseparert liste hvis flere rivers.)
 - For å bruke SSL-autentisering (Aiven) må man angi miljøvariablene `KAFKA_KEYSTORE_PATH` og `KAFKA_KEYSTORE_PASSWORD`
 
-Rapids-biblioteket bundler egen `logback.xml` så det trengs ikke spesifiseres i mikrotjenestene.
-Den bundlede `logback.xml` har konfigurasjon for secureLogs (men husk å enable secureLogs i nais.yaml!), tilgjengelig med:
+#### Logging
+
+- Rapids-biblioteket bundler en `logback-rr.xml` som inneholder et standardoppsett for en R&R-applikasjon, men som med dette navnet ikke påtvinges mikrotjenestene.
+- Den bundlede konfigurasjon inkluderer oppsett for _secureLogs_ (NB husk å enable secureLogs i nais.yaml!), og er tilgjengelig med:
 ```
 LoggerFactory.getLogger("tjenestekall")
 ```
