@@ -4,7 +4,7 @@ val jvmTarget = 21
 
 val ktorVersion = "2.3.11"
 val kafkaVersion = "3.7.0"
-val micrometerRegistryPrometheusVersion = "1.12.6"
+val micrometerRegistryPrometheusVersion = "1.13.0"
 val junitJupiterVersion = "5.10.2"
 val jacksonVersion = "2.17.0"
 val logbackClassicVersion = "1.5.6"
@@ -33,7 +33,7 @@ dependencies {
     api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
 
     api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
-    api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
+    api("io.micrometer:micrometer-registry-prometheus-simpleclient:$micrometerRegistryPrometheusVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
