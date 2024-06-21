@@ -2,11 +2,11 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 val jvmTarget = 21
 
-val ktorVersion = "2.3.11"
+val ktorVersion = "2.3.12"
 val kafkaVersion = "3.7.0"
-val micrometerRegistryPrometheusVersion = "1.12.6"
+val micrometerRegistryPrometheusVersion = "1.13.1"
 val junitJupiterVersion = "5.10.2"
-val jacksonVersion = "2.17.0"
+val jacksonVersion = "2.17.1"
 val logbackClassicVersion = "1.5.6"
 val logbackEncoderVersion = "7.4"
 val awaitilityVersion = "4.2.1"
