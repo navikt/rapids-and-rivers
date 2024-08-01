@@ -14,5 +14,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Run snapshot action
-        uses: mikepenz/gradle-dependency-submission@03725509c6bfb27fc9c924fbe5d38a7d3c82e1b5
+      - name: Setup gradle
+        uses: gradle/actions/setup-gradle@v3
+        env:
+          ORG_GRADLE_PROJECT_githubUser: x-access-token
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build with Gradle
+        run: ./gradlew build
