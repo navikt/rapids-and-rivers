@@ -19,15 +19,16 @@ import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
 import org.slf4j.LoggerFactory
 
-private const val defaultIsAliveEndpoint = "/isalive"
-private const val defaultIsReadyEndpoint = "/isready"
-private const val defaultMetricsEndpoint = "/metrics"
-private const val defaultPreStopHookEndpoint = "/stop"
+private const val defaultIsAliveEndpoint = "isalive"
+private const val defaultIsReadyEndpoint = "isready"
+private const val defaultMetricsEndpoint = "metrics"
+private const val defaultPreStopHookEndpoint = "stop"
 
 fun defaultNaisApplication(
     port: Int = 8080,
     extraMetrics: List<MeterBinder> = emptyList(),
     collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry,
+    endpointPrefix: String = "",
     metricsEndpoint: String = defaultMetricsEndpoint,
     isAliveEndpoint: String = defaultIsAliveEndpoint,
     isReadyEndpoint: String = defaultIsReadyEndpoint,
@@ -42,10 +43,10 @@ fun defaultNaisApplication(
     connectors.add(EngineConnectorBuilder().apply {
         this.port = port
     })
-    module(metricsEndpoint(metricsEndpoint, extraMetrics, collectorRegistry))
-    module(healthEndpoint(isAliveEndpoint, isAliveCheck))
-    module(healthEndpoint(isReadyEndpoint, isReadyCheck))
-    module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
+    module(metricsEndpoint("$endpointPrefix/$metricsEndpoint", extraMetrics, collectorRegistry))
+    module(healthEndpoint("$endpointPrefix/$isAliveEndpoint", isAliveCheck))
+    module(healthEndpoint("$endpointPrefix/$isReadyEndpoint", isReadyCheck))
+    module(preStookHookEndpoint("$endpointPrefix/$preStopHookEndpoint", preStopHook))
     modules.addAll(extraModules)
 }) {
     apply(cioConfiguration)
