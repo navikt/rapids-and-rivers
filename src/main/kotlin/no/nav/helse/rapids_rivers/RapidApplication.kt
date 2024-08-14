@@ -150,7 +150,6 @@ class RapidApplication internal constructor(
 
         private var ktor: ApplicationEngine? = null
         private val modules = mutableListOf<Application.() -> Unit>()
-        private var endpointPrefix = ""
 
         fun withKtor(ktor: ApplicationEngine) = apply {
             this.ktor = ktor
@@ -158,10 +157,6 @@ class RapidApplication internal constructor(
 
         fun withKtorModule(module: Application.() -> Unit) = apply {
             this.modules.add(module)
-        }
-
-        fun withEndpointPrefix(endpointPrefix: String) = apply {
-            this.endpointPrefix = endpointPrefix
         }
 
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
@@ -176,7 +171,6 @@ class RapidApplication internal constructor(
                 port = config.httpPort,
                 extraMetrics = rapid.getMetrics(),
                 collectorRegistry = config.collectorRegistry,
-                endpointPrefix = endpointPrefix,
                 isAliveCheck = rapid::isRunning,
                 isReadyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
