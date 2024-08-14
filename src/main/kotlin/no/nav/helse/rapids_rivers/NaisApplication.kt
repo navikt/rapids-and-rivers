@@ -19,19 +19,14 @@ import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.exporter.common.TextFormat
 import org.slf4j.LoggerFactory
 
-private const val defaultIsAliveEndpoint = "/isalive"
-private const val defaultIsReadyEndpoint = "/isready"
-private const val defaultMetricsEndpoint = "/metrics"
-private const val defaultPreStopHookEndpoint = "/stop"
-
 fun defaultNaisApplication(
     port: Int = 8080,
     extraMetrics: List<MeterBinder> = emptyList(),
     collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry,
-    metricsEndpoint: String = defaultMetricsEndpoint,
-    isAliveEndpoint: String = defaultIsAliveEndpoint,
-    isReadyEndpoint: String = defaultIsReadyEndpoint,
-    preStopHookEndpoint: String = defaultPreStopHookEndpoint,
+    metricsEndpoint: String,
+    isAliveEndpoint: String,
+    isReadyEndpoint: String,
+    preStopHookEndpoint: String,
     isAliveCheck: () -> Boolean = { true },
     isReadyCheck: () -> Boolean = { true },
     preStopHook: suspend () -> Unit = { },
