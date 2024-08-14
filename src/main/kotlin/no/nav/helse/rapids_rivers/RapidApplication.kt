@@ -151,12 +151,34 @@ class RapidApplication internal constructor(
         private var ktor: ApplicationEngine? = null
         private val modules = mutableListOf<Application.() -> Unit>()
 
+
+        private var isAliveEndpoint = "/isalive"
+        private var isReadyEndpoint = "/isready"
+        private var metricsEndpoint = "/metrics"
+        private var preStopHookEndpoint = "/stop"
+
         fun withKtor(ktor: ApplicationEngine) = apply {
             this.ktor = ktor
         }
 
         fun withKtorModule(module: Application.() -> Unit) = apply {
             this.modules.add(module)
+        }
+
+        fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
+            this.isAliveEndpoint = isAliveEndpoint
+        }
+
+        fun withIsReadyEndpoint(isReadyEndpoint: String) = apply {
+            this.isReadyEndpoint = isReadyEndpoint
+        }
+
+        fun withMetricsEndpoint(metricsEndpoint: String) = apply {
+            this.metricsEndpoint = metricsEndpoint
+        }
+
+        fun withPreStopHookEndpoint(preStopHookEndpoint: String) = apply {
+            this.preStopHookEndpoint = preStopHookEndpoint
         }
 
         fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
@@ -175,7 +197,11 @@ class RapidApplication internal constructor(
                 isReadyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
                 extraModules = modules,
-                cioConfiguration = cioConfiguration
+                cioConfiguration = cioConfiguration,
+                metricsEndpoint = metricsEndpoint,
+                isAliveEndpoint = isAliveEndpoint,
+                isReadyEndpoint = isReadyEndpoint,
+                preStopHookEndpoint = preStopHookEndpoint
             )
         }
 
