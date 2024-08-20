@@ -1,16 +1,16 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import java.util.*
 
 internal class RiverTest {
 
     @Test
     internal fun `sets id if missing`() {
-        river.onMessage("{}", context)
+        river.onMessage("{}", context, SimpleMeterRegistry())
         assertTrue(gotMessage)
         assertDoesNotThrow { gotPacket.id.toUUID() }
     }
@@ -19,21 +19,21 @@ internal class RiverTest {
     internal fun `sets custom id if missing`() {
         val expected = "notSoRandom"
         river = configureRiver(River(rapid) { expected })
-        river.onMessage("{}", context)
+        river.onMessage("{}", context, SimpleMeterRegistry())
         assertTrue(gotMessage)
         assertEquals(expected, gotPacket.id)
     }
 
     @Test
     internal fun `invalid json`() {
-        river.onMessage("invalid json", context)
+        river.onMessage("invalid json", context, SimpleMeterRegistry())
         assertFalse(gotMessage)
         assertTrue(messageProblems.hasErrors())
     }
 
     @Test
     internal fun `no validations`() {
-        river.onMessage("{}", context)
+        river.onMessage("{}", context, SimpleMeterRegistry())
         assertTrue(gotMessage)
         assertFalse(messageProblems.hasErrors())
     }
@@ -41,7 +41,7 @@ internal class RiverTest {
     @Test
     internal fun `failed validations`() {
         river.validate { it.requireKey("key") }
-        river.onMessage("{}", context)
+        river.onMessage("{}", context, SimpleMeterRegistry())
         assertFalse(gotMessage)
         assertTrue(messageProblems.hasErrors())
     }
@@ -49,7 +49,7 @@ internal class RiverTest {
     @Test
     internal fun `passing validations`() {
         river.validate { it.requireValue("hello", "world") }
-        river.onMessage("{\"hello\": \"world\"}", context)
+        river.onMessage("{\"hello\": \"world\"}", context, SimpleMeterRegistry())
         assertTrue(gotMessage)
         assertFalse(messageProblems.hasErrors())
     }

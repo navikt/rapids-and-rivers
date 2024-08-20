@@ -10,7 +10,8 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.prometheus.client.CollectorRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.*
 import org.apache.kafka.clients.consumer.Consumer
 import org.awaitility.Awaitility.await
@@ -148,7 +149,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     @Test
     fun `metric values`() {
-        withRapid(collectorRegistry = CollectorRegistry.defaultRegistry) { rapid ->
+        withRapid { rapid ->
             waitForEvent("application_ready")
             rapid.publish("""{"@event_name":"ping","@id":"${UUID.randomUUID()}","ping_time":"${LocalDateTime.now()}"}""")
             waitForEvent("ping")
@@ -207,7 +208,7 @@ internal class RapidApplicationComponentTest {
     @DelicateCoroutinesApi
     private fun withRapid(
         ktor: (port: Int) -> ApplicationEngine? = { null },
-        collectorRegistry: CollectorRegistry = CollectorRegistry(),
+        metersRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
         block: (RapidsConnection) -> Unit
     ) {
         val randomPort = ServerSocket(0).use { it.localPort }
@@ -219,7 +220,7 @@ internal class RapidApplicationComponentTest {
             kafkaConfig = localConfig,
             consumerGroupId = "component-test",
             httpPort = randomPort,
-            collectorRegistry = collectorRegistry
+            metersRegistry = metersRegistry
         )
         val builder = RapidApplication.Builder(rapidApplicationConfig)
         ktor(randomPort)?.let { builder.withKtor(it) }

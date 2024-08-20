@@ -9,6 +9,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import java.net.InetAddress
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -19,6 +23,7 @@ import java.util.*
 open class JsonMessage(
     originalMessage: String,
     private val problems: MessageProblems,
+    private val metrics: MeterRegistry,
     randomIdGenerator: RandomIdGenerator? = null
 ) {
     private val idGenerator = randomIdGenerator ?: RandomIdGenerator.Default
@@ -42,13 +47,30 @@ open class JsonMessage(
         private val serviceImage: String? = System.getenv("NAIS_APP_IMAGE")
         private val serviceHostname = serviceName?.let { InetAddress.getLocalHost().hostName }
 
-        fun newMessage(map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) =
-            objectMapper.writeValueAsString(map).let { JsonMessage(it, MessageProblems(it), randomIdGenerator) }
-        fun newMessage(eventName: String, map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) = newMessage(mapOf(EventNameKey to eventName) + map, randomIdGenerator)
-        fun newNeed(behov: Collection<String>, map: Map<String, Any> = emptyMap(), randomIdGenerator: RandomIdGenerator? = null) = newMessage("behov", mapOf(
+        fun newMessage(
+            map: Map<String, Any> = emptyMap(),
+            metrics: MeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+            randomIdGenerator: RandomIdGenerator? = null
+        ) = objectMapper.writeValueAsString(map).let {
+            JsonMessage(it, MessageProblems(it), metrics, randomIdGenerator)
+        }
+
+        fun newMessage(
+            eventName: String,
+            map: Map<String, Any> = emptyMap(),
+            metrics: MeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+            randomIdGenerator: RandomIdGenerator? = null
+        ) = newMessage(mapOf(EventNameKey to eventName) + map, metrics, randomIdGenerator)
+
+        fun newNeed(
+            behov: Collection<String>,
+            map: Map<String, Any> = emptyMap(),
+            metrics: MeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
+            randomIdGenerator: RandomIdGenerator? = null
+        ) = newMessage("behov", mapOf(
             "@behovId" to UUID.randomUUID(),
             NeedKey to behov
-        ) + map, randomIdGenerator)
+        ) + map, metrics, randomIdGenerator)
 
         internal fun populateStandardFields(originalMessage: JsonMessage, message: String, randomIdGenerator: RandomIdGenerator = originalMessage.idGenerator): String {
             return (objectMapper.readTree(message) as ObjectNode).also {
@@ -241,7 +263,7 @@ open class JsonMessage(
             node.forEachIndexed { index, element ->
                 val elementJson = element.toString()
                 val elementProblems = MessageProblems(elementJson)
-                JsonMessage(elementJson, elementProblems).apply(elementsValidation)
+                JsonMessage(elementJson, elementProblems, metrics).apply(elementsValidation)
                 if (elementProblems.hasErrors()) problems.error("Array element #$index at $key did not pass validation:", elementProblems)
             }
         }
@@ -324,7 +346,13 @@ open class JsonMessage(
 
     private fun accessor(key: String) {
         val eventName = json.path(EventNameKey).asText().takeUnless { it.isBlank() } ?: "unknown_event"
-        Metrics.keysAccessed.labels(eventName, key).inc()
+        Counter.builder("message_keys_counter")
+            .description("Hvilke nøkler som er i bruk")
+            .tag("event_name", eventName)
+            .tag("accessor_key", key)
+            .register(metrics)
+            .increment()
+
         recognizedKeys.computeIfAbsent(key) { node(key) }
     }
 

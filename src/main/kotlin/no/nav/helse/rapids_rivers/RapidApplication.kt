@@ -3,7 +3,11 @@ package no.nav.helse.rapids_rivers
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.prometheus.client.CollectorRegistry
+import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.OffsetResetStrategy
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -33,8 +37,8 @@ class RapidApplication internal constructor(
         }
     }
 
-    override fun onMessage(message: String, context: MessageContext) {
-        notifyMessage(message, context)
+    override fun onMessage(message: String, context: MessageContext, metrics: MeterRegistry) {
+        notifyMessage(message, context, metrics)
     }
 
     override fun start() {
@@ -133,6 +137,7 @@ class RapidApplication internal constructor(
         private val rapid = KafkaRapid(
             factory = ConsumerProducerFactory(config.kafkaConfig),
             groupId = config.consumerGroupId,
+            meterRegistry = config.metersRegistry,
             consumerProperties = Properties().apply {
                 put(ConsumerConfig.CLIENT_ID_CONFIG, "consumer-${config.instanceId}")
                 put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, config.instanceId)
@@ -192,7 +197,7 @@ class RapidApplication internal constructor(
             return defaultNaisApplication(
                 port = config.httpPort,
                 extraMetrics = rapid.getMetrics(),
-                collectorRegistry = config.collectorRegistry,
+                collectorRegistry = config.metersRegistry,
                 isAliveCheck = rapid::isRunning,
                 isReadyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
@@ -222,7 +227,7 @@ class RapidApplication internal constructor(
         maxIntervalMs: Long? = null,
         maxRecords: Int? = null,
         internal val httpPort: Int = 8080,
-        internal val collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
+        internal val metersRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM)
     ) {
         internal val maxRecords = maxRecords ?: ConsumerConfig.DEFAULT_MAX_POLL_RECORDS
         // assuming a "worst case" scenario where it takes 4 seconds to process each message;

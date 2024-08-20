@@ -1,28 +1,24 @@
 package no.nav.helse.rapids_rivers
 
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.metrics.micrometer.MicrometerMetrics
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondTextWriter
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
+import io.ktor.server.metrics.micrometer.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Metrics.addRegistry
 import io.micrometer.core.instrument.binder.MeterBinder
-import io.micrometer.prometheus.PrometheusConfig
-import io.micrometer.prometheus.PrometheusMeterRegistry
-import io.prometheus.client.CollectorRegistry
-import io.prometheus.client.exporter.common.TextFormat
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.slf4j.LoggerFactory
 
 fun defaultNaisApplication(
     port: Int = 8080,
     extraMetrics: List<MeterBinder> = emptyList(),
-    collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry,
+    collectorRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
     metricsEndpoint: String,
     isAliveEndpoint: String,
     isReadyEndpoint: String,
@@ -64,18 +60,15 @@ private fun preStookHookEndpoint(endpoint: String, hook: suspend () -> Unit) = f
         }
     }
 }
-private fun metricsEndpoint(endpoint: String, metrics: List<MeterBinder>, collectorRegistry: CollectorRegistry) = fun Application.() {
+private fun metricsEndpoint(endpoint: String, metrics: List<MeterBinder>, meterRegistry: PrometheusMeterRegistry) = fun Application.() {
     install(MicrometerMetrics) {
-        registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, collectorRegistry, Clock.SYSTEM)
+        registry = meterRegistry
         meterBinders = meterBinders + metrics
         addRegistry(registry)
     }
     routing {
         get(endpoint) {
-            val names = call.request.queryParameters.getAll("name[]")?.toSet() ?: emptySet()
-            call.respondTextWriter(ContentType.parse(TextFormat.CONTENT_TYPE_004)) {
-                TextFormat.write004(this, collectorRegistry.filteredMetricFamilySamples(names))
-            }
+            call.respond(meterRegistry.scrape())
         }
     }
 }

@@ -1,5 +1,8 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import no.nav.helse.rapids_rivers.River.PacketListener.Companion.Name
 import java.util.*
 
@@ -39,48 +42,67 @@ class River(rapidsConnection: RapidsConnection, private val randomIdGenerator: R
         return this
     }
 
-    override fun onMessage(message: String, context: MessageContext) {
+    override fun onMessage(message: String, context: MessageContext, metrics: MeterRegistry) {
         val problems = MessageProblems(message)
         try {
-            val packet = JsonMessage(message, problems, randomIdGenerator)
+            val packet = JsonMessage(message, problems, metrics, randomIdGenerator)
             validations.forEach { it.validate(packet) }
             if (problems.hasErrors()) {
-                return onError(problems, context)
+                return onError(metrics, problems, context)
             }
-            onPacket(packet, JsonMessageContext(context, packet))
+            onPacket(packet, JsonMessageContext(context, packet), metrics)
         } catch (err: MessageProblems.MessageException) {
-            return onSevere(err, context)
+            return onSevere(metrics, err, context)
         }
     }
 
-    private fun onPacket(packet: JsonMessage, context: MessageContext) {
+    private fun onPacket(packet: JsonMessage, context: MessageContext, metrics: MeterRegistry) {
         packet.interestedIn("@event_name")
         val eventName = packet["@event_name"].textValue() ?: "ukjent"
         listeners.forEach {
-            notifyPacketListener(eventName, it, packet, context)
+            notifyPacketListener(metrics, eventName, it, packet, context)
         }
     }
 
-    private fun notifyPacketListener(eventName: String, packetListener: PacketListener, packet: JsonMessage, context: MessageContext) {
-        Metrics.onMessageCounter.labels(context.rapidName(), packetListener.name(), "ok", eventName).inc()
-        Metrics.onPacketHistorgram.labels(context.rapidName(), packetListener.name(), eventName).time {
-            packetListener.onPacket(packet, context)
-        }
+    private fun notifyPacketListener(metrics: MeterRegistry, eventName: String, packetListener: PacketListener, packet: JsonMessage, context: MessageContext) {
+        onMessageCounter(metrics, context.rapidName(), packetListener.name(), "ok", eventName)
+        val timer = Timer.start(metrics)
+        packetListener.onPacket(packet, context)
+        timer.stop(
+            Timer.builder("on_packet_seconds")
+            .description("Hvor lang det tar å lese en gjenkjent melding i sekunder")
+            .tag("rapid", context.rapidName())
+            .tag("river", packetListener.name())
+            .tag("event_name", eventName)
+            .register(metrics)
+        )
     }
 
-    private fun onSevere(error: MessageProblems.MessageException, context: MessageContext) {
+    private fun onSevere(metrics: MeterRegistry, error: MessageProblems.MessageException, context: MessageContext) {
         listeners.forEach {
-            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "severe", "").inc()
+            onMessageCounter(metrics, context.rapidName(), it.name(), "severe")
             it.onSevere(error, context)
         }
     }
 
-    private fun onError(problems: MessageProblems, context: MessageContext) {
+    private fun onError(metrics: MeterRegistry, problems: MessageProblems, context: MessageContext) {
         listeners.forEach {
-            Metrics.onMessageCounter.labels(context.rapidName(), it.name(), "error", "").inc()
+            onMessageCounter(metrics, context.rapidName(), it.name(), "error")
             it.onError(problems, context)
         }
     }
+
+    private fun onMessageCounter(metrics: MeterRegistry, rapidName: String, riverName: String, validated: String, eventName: String? = null) {
+        Counter.builder("message_counter")
+            .description("Hvor mange meldinger som er lest inn")
+            .tag("rapid", rapidName)
+            .tag("river", riverName)
+            .tag("validated", validated)
+            .tag("event_name", eventName ?: "")
+            .register(metrics)
+            .increment()
+    }
+
 
     fun interface PacketValidation {
         fun validate(message: JsonMessage)

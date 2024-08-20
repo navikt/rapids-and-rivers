@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics
 import org.apache.kafka.clients.consumer.*
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -16,10 +17,11 @@ class KafkaRapid(
     factory: ConsumerProducerFactory,
     groupId: String,
     private val rapidTopic: String,
+    private val meterRegistry: MeterRegistry,
     consumerProperties: Properties = Properties(),
     producerProperties: Properties = Properties(),
     private val autoCommit: Boolean = false,
-    extraTopics: List<String> = emptyList()
+    extraTopics: List<String> = emptyList(),
 ) : RapidsConnection(), ConsumerRebalanceListener {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -131,7 +133,7 @@ class KafkaRapid(
         withMDC(recordDiganostics(record)) {
             val recordValue = record.value() ?: return@withMDC log.info("ignoring record with offset ${record.offset()} in partition ${record.partition()} because value is null (tombstone)")
             val context = KeyMessageContext(this, record.key())
-            notifyMessage(recordValue, context)
+            notifyMessage(recordValue, context, meterRegistry)
         }
     }
 

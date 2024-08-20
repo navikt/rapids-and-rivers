@@ -3,6 +3,8 @@ package no.nav.helse.rapids_rivers
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.*
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.clients.consumer.Consumer
@@ -93,7 +95,7 @@ internal class RapidIntegrationTest {
 
     @Test
     fun `should stop on errors`() {
-        rapid.register { _, _ -> throw RuntimeException() }
+        rapid.register { _, _, _ -> throw RuntimeException() }
 
         await("wait until the rapid stops")
             .atMost(20, SECONDS)
@@ -261,7 +263,7 @@ internal class RapidIntegrationTest {
     }
 
     private fun createTestRapid(): KafkaRapid {
-        return KafkaRapid(factory, consumerId, testTopic, extraTopics = listOf(anotherTestTopic))
+        return KafkaRapid(factory, consumerId, testTopic, PrometheusMeterRegistry(PrometheusConfig.DEFAULT), extraTopics = listOf(anotherTestTopic))
     }
 
     private fun testRiver(eventName: String, serviceId: String) {

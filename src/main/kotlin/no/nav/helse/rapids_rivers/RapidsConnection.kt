@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 
 interface MessageContext {
@@ -31,21 +32,21 @@ abstract class RapidsConnection : MessageContext {
         replayMessages.add(message to context)
     }
 
-    private fun replayMessage(replayMessage: Pair<String, MessageContext>) {
+    private fun replayMessage(replayMessage: Pair<String, MessageContext>, metrics: MeterRegistry) {
         sikkerLogg.info("replayer melding:\n\t${replayMessage.first}")
-        notifyMessage(replayMessage.first, replayMessage.second)
+        notifyMessage(replayMessage.first, replayMessage.second, metrics)
     }
 
-    protected fun notifyMessage(message: String, context: MessageContext) {
-        listeners.forEach { it.onMessage(message, context) }
-        replayMessages()
+    protected fun notifyMessage(message: String, context: MessageContext, metrics: MeterRegistry) {
+        listeners.forEach { it.onMessage(message, context, metrics) }
+        replayMessages(metrics)
     }
 
-    private fun replayMessages() {
+    private fun replayMessages(metrics: MeterRegistry) {
         if (replayMessages.isEmpty()) return
         log.info("det er ${replayMessages.size} meldinger køet for replay")
         sikkerLogg.info("det er ${replayMessages.size} meldinger køet for replay")
-        replayMessage(replayMessages.removeAt(0))
+        replayMessage(replayMessages.removeAt(0),  metrics)
     }
 
     protected fun notifyStartup() {
@@ -89,6 +90,6 @@ abstract class RapidsConnection : MessageContext {
     }
 
     fun interface MessageListener {
-        fun onMessage(message: String, context: MessageContext)
+        fun onMessage(message: String, context: MessageContext, metrics: MeterRegistry)
     }
 }

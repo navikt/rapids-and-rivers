@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.*
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -23,6 +25,7 @@ internal class JsonMessageTest {
         .registerModule(JavaTimeModule())
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
     private val ValidJson = "{\"foo\": \"bar\"}"
     private val InvalidJson = "foo"
     private val ValidJsonNoObject = "[]"
@@ -95,7 +98,7 @@ internal class JsonMessageTest {
     fun `invalid json`() {
         MessageProblems(InvalidJson).also {
             assertThrows<MessageProblems.MessageException> {
-                JsonMessage(InvalidJson, it)
+                JsonMessage(InvalidJson, it, meterRegistry)
             }
             assertTrue(it.hasErrors()) { "was not supposed to recognize $InvalidJson" }
         }
@@ -105,7 +108,7 @@ internal class JsonMessageTest {
     fun `valid json - but not object`() {
         MessageProblems(ValidJsonNoObject).also {
             assertThrows<MessageProblems.MessageException> {
-                JsonMessage(ValidJsonNoObject, it)
+                JsonMessage(ValidJsonNoObject, it, meterRegistry)
             }
             assertTrue(it.hasErrors()) { "was not supposed to recognize $ValidJsonNoObject" }
         }
@@ -114,19 +117,19 @@ internal class JsonMessageTest {
     @Test
     fun `require custom parser`() {
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"bar\"}", this).apply {
+            JsonMessage("{\"foo\": \"bar\"}", this, meterRegistry).apply {
                 require("foo", JsonNode::asLocalDate)
             }
             assertTrue(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"2020-01-01\"}", this).apply {
+            JsonMessage("{\"foo\": \"2020-01-01\"}", this, meterRegistry).apply {
                 require("foo", JsonNode::asLocalDate)
             }
             assertFalse(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": null}", this).apply {
+            JsonMessage("{\"foo\": null}", this, meterRegistry).apply {
                 require("foo", JsonNode::asLocalDate)
             }
             assertTrue(hasErrors())
@@ -136,19 +139,19 @@ internal class JsonMessageTest {
     @Test
     fun `interested in custom parser`() {
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"bar\"}", this).apply {
+            JsonMessage("{\"foo\": \"bar\"}", this, meterRegistry).apply {
                 interestedIn("foo", JsonNode::asLocalDate)
             }
             assertTrue(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"2020-01-01\"}", this).apply {
+            JsonMessage("{\"foo\": \"2020-01-01\"}", this, meterRegistry).apply {
                 interestedIn("foo", JsonNode::asLocalDate)
             }
             assertFalse(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": null}", this).apply {
+            JsonMessage("{\"foo\": null}", this, meterRegistry).apply {
                 interestedIn("foo", JsonNode::asLocalDate)
             }
             assertFalse(hasErrors())
@@ -158,7 +161,7 @@ internal class JsonMessageTest {
     @Test
     fun `demand custom parser`() {
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"bar\"}", this).apply {
+            JsonMessage("{\"foo\": \"bar\"}", this, meterRegistry).apply {
                 assertThrows<MessageProblems.MessageException> {
                     demand("foo", JsonNode::asLocalDate)
                 }
@@ -166,13 +169,13 @@ internal class JsonMessageTest {
             assertTrue(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": \"2020-01-01\"}", this).apply {
+            JsonMessage("{\"foo\": \"2020-01-01\"}", this, meterRegistry).apply {
                 demand("foo", JsonNode::asLocalDate)
             }
             assertFalse(hasErrors())
         }
         MessageProblems("").apply {
-            JsonMessage("{\"foo\": null}", this).apply {
+            JsonMessage("{\"foo\": null}", this, meterRegistry).apply {
                 assertThrows<MessageProblems.MessageException> {
                     demand("foo", JsonNode::asLocalDate)
                 }
@@ -200,19 +203,19 @@ internal class JsonMessageTest {
     @Test
     fun `valid json`() {
         val problems = MessageProblems(ValidJson)
-        JsonMessage(ValidJson, problems)
+        JsonMessage(ValidJson, problems, meterRegistry)
         assertFalse(problems.hasErrors())
     }
 
     @Test
     fun `read count`() {
         val problems = MessageProblems("{}")
-        val firstMessage = JsonMessage("{}", problems).apply {
+        val firstMessage = JsonMessage("{}", problems, meterRegistry).apply {
             interestedIn("system_read_count")
         }
         assertEquals(0, firstMessage["system_read_count"].intValue())
 
-        val secondMessage = JsonMessage(firstMessage.toJson(), problems).apply {
+        val secondMessage = JsonMessage(firstMessage.toJson(), problems, meterRegistry).apply {
             interestedIn("system_read_count")
         }
         assertEquals(1, secondMessage["system_read_count"].intValue())
@@ -221,7 +224,7 @@ internal class JsonMessageTest {
     @Test
     fun `set value`() {
         val problems = MessageProblems("{}")
-        val message = JsonMessage("{}", problems)
+        val message = JsonMessage("{}", problems, meterRegistry)
         assertThrows<IllegalArgumentException> { message["key"] }
         message["key"] = "Hello!"
         assertEquals("Hello!", message["key"].asText())
@@ -230,7 +233,7 @@ internal class JsonMessageTest {
     @Test
     fun `update value`() {
         val problems = MessageProblems("{}")
-        val message = JsonMessage("{}", problems).apply {
+        val message = JsonMessage("{}", problems, meterRegistry).apply {
             interestedIn("key")
         }
         assertTrue(message["key"].isMissingNode)
@@ -303,7 +306,7 @@ internal class JsonMessageTest {
     fun rejectKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     rejectKey("foo")
                     assertFalse(problems.hasErrors())
                 }
@@ -311,7 +314,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     rejectKey("foo")
                     assertFalse(problems.hasErrors())
                 }
@@ -319,7 +322,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { rejectKey("foo") }
                     assertTrue(problems.hasErrors())
                 }
@@ -331,7 +334,7 @@ internal class JsonMessageTest {
     fun rejectValue() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     rejectValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                 }
@@ -339,7 +342,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     rejectValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                 }
@@ -347,7 +350,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     rejectValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                 }
@@ -355,7 +358,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"bar\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { rejectValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                 }
@@ -367,7 +370,7 @@ internal class JsonMessageTest {
     fun demandKey() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandKey("foo") }
                     assertTrue(problems.hasErrors())
                 }
@@ -375,7 +378,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandKey("foo") }
                     assertTrue(problems.hasErrors())
                 }
@@ -383,7 +386,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandKey("foo")
                     assertFalse(problems.hasErrors())
                 }
@@ -395,7 +398,7 @@ internal class JsonMessageTest {
     fun demandValue() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -404,7 +407,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -413,7 +416,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -422,7 +425,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"bar\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                     assertEquals("bar", this["foo"].asText())
@@ -431,7 +434,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": 3.14}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandValue("foo", 3.14)
                     assertFalse(problems.hasErrors())
                     assertEquals(3.14, this["foo"].numberValue())
@@ -440,7 +443,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"3.14\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", 3.14) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -453,7 +456,7 @@ internal class JsonMessageTest {
     fun demandAllOrAny() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -462,7 +465,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -471,7 +474,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAllOrAny("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -480,7 +483,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -488,7 +491,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -496,7 +499,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"foo\", \"baz\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -508,7 +511,7 @@ internal class JsonMessageTest {
     fun demand() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -517,7 +520,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -526,7 +529,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", "bar") }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -535,7 +538,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"bar\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandValue("foo", "bar")
                     assertFalse(problems.hasErrors())
                     assertEquals("bar", this["foo"].asText())
@@ -548,7 +551,7 @@ internal class JsonMessageTest {
     fun requireAllOrAny() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -557,7 +560,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -566,7 +569,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"baz\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -575,7 +578,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -583,7 +586,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -591,7 +594,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"foo\", \"baz\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     requireAllOrAny("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -603,7 +606,7 @@ internal class JsonMessageTest {
     fun demandAll() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -612,7 +615,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -621,7 +624,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": \"bar\"}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -630,7 +633,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandAll("foo", listOf("bar", "baz")) }
                     assertTrue(problems.hasErrors())
                     assertThrows(this, "foo")
@@ -639,7 +642,7 @@ internal class JsonMessageTest {
         }
         "{\"foo\": [\"bar\", \"baz\"]}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandAll("foo", listOf("bar", "baz"))
                     assertFalse(problems.hasErrors())
                 }
@@ -670,28 +673,28 @@ internal class JsonMessageTest {
     fun demandValueBoolean() {
         "{}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
                 }
             }
         }
         "{\"foo\": null}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
                 }
             }
         }
         "{\"foo\": true}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     assertThrows<MessageProblems.MessageException> { demandValue("foo", false) }
                 }
             }
         }
         "{\"foo\": false}".also { json ->
             MessageProblems(json).also { problems ->
-                JsonMessage(json, problems).apply {
+                JsonMessage(json, problems, meterRegistry).apply {
                     demandValue("foo", false)
                     assertFalse(problems.hasErrors())
                 }
@@ -725,7 +728,7 @@ internal class JsonMessageTest {
         val key = "foo"
         val expectedValue = 3
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertTrue(problems.hasErrors())
         }
@@ -905,7 +908,7 @@ internal class JsonMessageTest {
 
     private fun assertEquals(msg: String, key: String, expectedValue: String) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertFalse(problems.hasErrors())
             assertEquals(expectedValue, it[key].textValue())
@@ -914,7 +917,7 @@ internal class JsonMessageTest {
 
     private fun assertEquals(msg: String, key: String, expectedValue: Number) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertFalse(problems.hasErrors())
             assertEquals(expectedValue, it[key].numberValue())
@@ -923,7 +926,7 @@ internal class JsonMessageTest {
 
     private fun assertEquals(msg: String, key: String, expectedValue: Boolean) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertFalse(problems.hasErrors())
             assertEquals(expectedValue, it[key].booleanValue())
@@ -932,7 +935,7 @@ internal class JsonMessageTest {
 
     private fun assertEquals(msg: String, key: String, expectedValues: List<String>) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireAll(key, expectedValues)
             assertFalse(problems.hasErrors())
         }
@@ -940,7 +943,7 @@ internal class JsonMessageTest {
 
     private fun assertThrows(msg: String, key: String, expectedValues: List<String>) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireAll(key, expectedValues)
             assertTrue(problems.hasErrors())
         }
@@ -948,7 +951,7 @@ internal class JsonMessageTest {
 
     private fun assertThrows(msg: String, key: String, expectedValue: Boolean) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertTrue(problems.hasErrors())
             assertThrows(it, key)
@@ -957,7 +960,7 @@ internal class JsonMessageTest {
 
     private fun assertThrows(msg: String, key: String, expectedValue: String) {
         val problems = MessageProblems(msg)
-        JsonMessage(msg, problems).also {
+        JsonMessage(msg, problems, meterRegistry).also {
             it.requireValue(key, expectedValue)
             assertTrue(problems.hasErrors())
             assertThrows(it, key)
@@ -973,11 +976,11 @@ internal class JsonMessageTest {
     private lateinit var problems: MessageProblems
     private fun message(json: String): JsonMessage {
         problems = MessageProblems(json)
-        return JsonMessage(json, problems)
+        return JsonMessage(json, problems, meterRegistry)
     }
 
     private class ExtendedMessage(originalMessage: String, problems: MessageProblems) :
-        JsonMessage(originalMessage, problems) {
+        JsonMessage(originalMessage, problems, PrometheusMeterRegistry(PrometheusConfig.DEFAULT)) {
         init {
             requireKey("required_key")
         }

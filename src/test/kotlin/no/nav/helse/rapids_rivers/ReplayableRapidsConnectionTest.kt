@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import io.micrometer.core.instrument.MeterRegistry
 import no.nav.helse.rapids_rivers.testsupport.TestRapid
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -41,7 +42,7 @@ internal class ReplayableRapidsConnectionTest {
         val replayedMessage = "a message"
         val secondReplayedMessage = "a second message"
 
-        testRapid.register { message: String, _: MessageContext ->
+        testRapid.register { message: String, _: MessageContext, _ ->
             if (message != replayedMessage) return@register
             repeat(5) { testRapid.queueReplayMessage(key, secondReplayedMessage) }
         }
@@ -59,7 +60,7 @@ internal class ReplayableRapidsConnectionTest {
         val replayedMessage = "a message"
         val secondMessage = "{ \"foo\": \"bar\" }"
 
-        testRapid.register { _: String, context: MessageContext ->
+        testRapid.register { _: String, context: MessageContext, _ ->
             context.publish(secondMessage)
         }
 
@@ -79,7 +80,7 @@ internal class ReplayableRapidsConnectionTest {
         val replayedMessage = "a message"
         val secondMessage = "{ \"foo\": \"bar\" }"
 
-        testRapid.register { _: String, context: MessageContext ->
+        testRapid.register { _: String, context: MessageContext, _ ->
             context.publish(newKey, secondMessage)
         }
 
@@ -99,7 +100,7 @@ internal class ReplayableRapidsConnectionTest {
             packets.clear()
         }
 
-        override fun onMessage(message: String, context: MessageContext) {
+        override fun onMessage(message: String, context: MessageContext, metrics: MeterRegistry) {
             packets.add(message)
         }
     }

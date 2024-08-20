@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import no.nav.helse.rapids_rivers.RapidsConnection
 import no.nav.helse.rapids_rivers.isMissingOrNull
 
-class TestRapid : RapidsConnection() {
+class TestRapid(private val meterRegistry: MeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)) : RapidsConnection() {
     private companion object {
         private val objectMapper = jacksonObjectMapper()
             .registerModule(JavaTimeModule())
@@ -22,7 +25,7 @@ class TestRapid : RapidsConnection() {
     }
 
     fun sendTestMessage(message: String) {
-        notifyMessage(message, this)
+        notifyMessage(message, this, meterRegistry)
     }
 
     override fun publish(message: String) {
