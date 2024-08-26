@@ -102,9 +102,9 @@ open class JsonMessage(
             val jsonNode = try {
                 objectMapper.readTree(message)
             } catch (err: JsonParseException) {
-                problems.severe("Invalid JSON per Jackson library: ${err.message}")
+                problems.typedSevere("Invalid JSON per Jackson library: ${err.message}")
             }
-            if (!jsonNode.isObject) problems.severe("Incomplete json. Should be able to cast as ObjectNode.")
+            if (!jsonNode.isObject) problems.typedSevere("Incomplete json. Should be able to cast as ObjectNode.")
             return jsonNode as ObjectNode
         }
     }
@@ -138,74 +138,74 @@ open class JsonMessage(
 
     private fun rejectKey(key: String) {
         val node = node(key)
-        if (!node.isMissingNode && !node.isNull) problems.severe("Rejected key $key exists")
+        if (!node.isMissingNode && !node.isNull) problems.typedSevere("Rejected key $key exists", MessageProblemType.REJECTED_KEY_EXISTS)
         accessor(key)
     }
 
     fun rejectValue(key: String, value: String) {
         val node = node(key)
-        if (!node.isMissingOrNull() && node.isTextual && node.asText() == value) problems.severe("Rejected key $key with value $value")
+        if (!node.isMissingOrNull() && node.isTextual && node.asText() == value) problems.typedSevere("Rejected key $key with value $value", MessageProblemType.REJECTED_KEY_WITH_VALUE)
         accessor(key)
     }
 
     fun rejectValue(key: String, value: Boolean) {
         val node = node(key)
-        if (!node.isMissingOrNull() && node.isBoolean && node.asBoolean() == value) problems.severe("Rejected key $key with value $value")
+        if (!node.isMissingOrNull() && node.isBoolean && node.asBoolean() == value) problems.typedSevere("Rejected key $key with value $value", MessageProblemType.REJECTED_KEY_WITH_VALUE)
         accessor(key)
     }
 
     fun rejectValues(key: String, values: List<String>) {
         val node = node(key)
-        if (!node.isMissingOrNull() && node.asText() in values) problems.severe("Rejected key $key with value ${node.asText()}")
+        if (!node.isMissingOrNull() && node.asText() in values) problems.typedSevere("Rejected key $key with value ${node.asText()}", MessageProblemType.REJECTED_KEY_WITH_VALUE)
         accessor(key)
     }
 
     fun demandKey(key: String) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (node.isNull) problems.severe("Demanded key $key is null")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (node.isNull) problems.typedSevere("Demanded key $key is null", MessageProblemType.DEMANDED_KEY_IS_NULL)
         accessor(key)
     }
 
     fun demandValue(key: String, value: String) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isTextual || node.asText() != value) problems.severe("Demanded $key is not string $value")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isTextual || node.asText() != value) problems.typedSevere("Demanded $key is not string $value", MessageProblemType.DEMANDED_IS_NOT_STRING)
         accessor(key)
     }
 
     fun demandValue(key: String, value: Number) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isNumber || node.numberValue() != value) problems.severe("Demanded $key is not number $value")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isNumber || node.numberValue() != value) problems.typedSevere("Demanded $key is not number $value", MessageProblemType.DEMANDED_IS_NOT_NUMBER)
         accessor(key)
     }
 
     fun demandValue(key: String, value: Boolean) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isBoolean || node.booleanValue() != value) problems.severe("Demanded $key is not boolean $value")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isBoolean || node.booleanValue() != value) problems.typedSevere("Demanded $key is not boolean $value", MessageProblemType.DEMANDED_IS_NOT_BOOLEAN)
         accessor(key)
     }
 
     fun demandAll(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isArray || !node.map(JsonNode::asText).containsAll(values)) problems.severe("Demanded $key does not contains $values")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isArray || !node.map(JsonNode::asText).containsAll(values)) problems.typedSevere("Demanded $key does not contains $values", MessageProblemType.DEMANDED_DOES_NOT_CONTAIN)
         accessor(key)
     }
 
     fun demandAny(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isTextual || node.asText() !in values) problems.severe("Demanded $key must be one of $values")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isTextual || node.asText() !in values) problems.typedSevere("Demanded $key must be one of $values", MessageProblemType.DEMANDED_MUST_BE_ONE_OF)
         accessor(key)
     }
 
     fun demandAllOrAny(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
-        if (!node.isArray || node.map(JsonNode::asText).none { it in values }) problems.severe("Demanded array $key does not contain one of $values")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
+        if (!node.isArray || node.map(JsonNode::asText).none { it in values }) problems.typedSevere("Demanded array $key does not contain one of $values", MessageProblemType.DEMANDED_ARRAY_DOES_NOT_CONTAIN_ONE_OF)
         accessor(key)
     }
 
@@ -215,11 +215,11 @@ open class JsonMessage(
 
     fun demand(key: String, parser: (JsonNode) -> Any) {
         val node = node(key)
-        if (node.isMissingNode) problems.severe("Missing demanded key $key")
+        if (node.isMissingNode) problems.typedSevere("Missing demanded key $key", MessageProblemType.MISSING_DEMANDED_KEY)
         try {
             parser(node)
         } catch (err: Exception) {
-            problems.severe("Demanded $key did not match the predicate: ${err.message}")
+            problems.typedSevere("Demanded $key did not match the predicate: ${err.message}", MessageProblemType.DEMANDED_DID_NOT_MATCH_THE_PREDICATE)
         }
         accessor(key)
     }
@@ -230,35 +230,35 @@ open class JsonMessage(
 
     fun requireValue(key: String, value: Boolean) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (!node.isBoolean || node.booleanValue() != value) return problems.error("Required $key is not boolean $value")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (!node.isBoolean || node.booleanValue() != value) return problems.typedError("Required $key is not boolean $value", MessageProblemType.DEMANDED_IS_NOT_BOOLEAN, key)
         accessor(key)
     }
     fun requireValue(key: String, value: String) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (!node.isTextual || node.asText() != value) return problems.error("Required $key is not string $value")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (!node.isTextual || node.asText() != value) return problems.typedError("Required $key is not string $value", MessageProblemType.DEMANDED_IS_NOT_STRING, key)
         accessor(key)
     }
 
     fun requireValue(key: String, value: Number) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (!node.isNumber || node.numberValue() != value) return problems.error("Required $key is not number $value")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (!node.isNumber || node.numberValue() != value) return problems.typedError("Required $key is not number $value", MessageProblemType.REQUIRED_IS_NOT_NUMBER, key)
         accessor(key)
     }
 
     fun requireAny(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (!node.isTextual || node.asText() !in values) return problems.error("Required $key must be one of $values")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (!node.isTextual || node.asText() !in values) return problems.typedError("Required $key must be one of $values", MessageProblemType.REQUIRED_MUST_BE_ONE_OF, key)
         accessor(key)
     }
 
     fun requireArray(key: String, elementsValidation: (JsonMessage.() -> Unit)? = null) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (!node.isArray) return problems.error("Required $key is not an array")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (!node.isArray) return problems.typedError("Required $key is not an array", MessageProblemType.REQUIRED_IS_NOT_AN_ARRAY, key)
         elementsValidation?.also {
             node.forEachIndexed { index, element ->
                 val elementJson = element.toString()
@@ -276,18 +276,18 @@ open class JsonMessage(
 
     fun requireAllOrAny(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
         if (!node.isArray || node.map(JsonNode::asText).none { it in values }) {
-            return problems.error("Required array $key does not contain one of $values")
+            return problems.typedError("Required array $key does not contain one of $values", MessageProblemType.REQUIRED_ARRAY_DOES_NOT_CONTAIN_ONE_OF, key)
         }
         accessor(key)
     }
 
     fun requireAll(key: String, values: List<String>) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
         if (!node.isArray || !node.map(JsonNode::asText).containsAll(values)) {
-            return problems.error("Required $key does not contains $values")
+            return problems.typedError("Required $key does not contains $values", MessageProblemType.REQUIRED_DOES_NOT_CONTAIN, key)
         }
         accessor(key)
     }
@@ -298,11 +298,11 @@ open class JsonMessage(
 
     fun require(key: String, parser: (JsonNode) -> Any) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
         try {
             parser(node)
         } catch (err: Exception) {
-            return problems.error("Required $key did not match the predicate: ${err.message}")
+            return problems.typedError("Required $key did not match the predicate: ${err.message}", MessageProblemType.REQUIRED_DID_NOT_MATCH_THE_PREDICATE, key)
         }
         accessor(key)
     }
@@ -313,7 +313,7 @@ open class JsonMessage(
 
     fun forbidValues(key: String, values: List<String>) {
         val node = node(key)
-        if (!node.isMissingOrNull() && node.isTextual && node.asText() in values) return problems.error("Required $key is one of $values")
+        if (!node.isMissingOrNull() && node.isTextual && node.asText() in values) return problems.typedError("Required $key is one of $values", MessageProblemType.REQUIRED_IS_ONE_OF, key)
         accessor(key)
     }
 
@@ -326,21 +326,21 @@ open class JsonMessage(
         try {
             node.takeUnless(JsonNode::isMissingOrNull)?.also { parser(it) }
         } catch (err: Exception) {
-            return problems.error("Optional $key did not match the predicate: ${err.message}")
+            return problems.typedError("Optional $key did not match the predicate: ${err.message}", MessageProblemType.OPTIONAL_DID_NOT_MATCH_THE_PREDICATE, key)
         }
         accessor(key)
     }
 
     private fun requireKey(key: String) {
         val node = node(key)
-        if (node.isMissingNode) return problems.error("Missing required key $key")
-        if (node.isNull) return problems.error("Required key $key is null")
+        if (node.isMissingNode) return problems.typedError("Missing required key $key", MessageProblemType.MISSING_REQUIRED_KEY, key)
+        if (node.isNull) return problems.typedError("Required key $key is null", MessageProblemType.REQUIRED_KEY_IS_NULL, key)
         accessor(key)
     }
 
     private fun forbid(key: String) {
         val node = node(key)
-        if (!node.isMissingNode && !node.isNull) return problems.error("Forbidden key $key exists")
+        if (!node.isMissingNode && !node.isNull) return problems.typedError("Forbidden key $key exists", MessageProblemType.FORBIDDEN_KEY_EXISTS, key)
         accessor(key)
     }
 

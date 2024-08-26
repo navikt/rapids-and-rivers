@@ -21,7 +21,7 @@ internal class MessageProblemsTest {
     internal fun `does not contain original message`() {
         assertFalse(problems.toString().contains(Message))
         val message = "a message"
-        problems.error(message)
+        problems.error(message, MessageProblemType.DEMANDED_DOES_NOT_CONTAIN)
         assertFalse(problems.toString().contains(Message))
     }
 
@@ -29,7 +29,7 @@ internal class MessageProblemsTest {
     internal fun `contains original message in extended report`() {
         assertFalse(problems.toExtendedReport().contains(Message))
         val message = "a message"
-        problems.error(message)
+        problems.error(message, MessageProblemType.REQUIRED_KEY_IS_NULL)
         assertTrue(problems.toExtendedReport().contains(Message))
     }
 
@@ -49,8 +49,26 @@ internal class MessageProblemsTest {
     @Test
     internal fun `errors`() {
         val message = "Error"
-        problems.error(message)
+        problems.error(message, MessageProblemType.MISSING_REQUIRED_KEY)
         assertTrue(problems.hasErrors())
         assertTrue(problems.toString().contains(message))
+    }
+
+    @Test
+    internal fun `types error`() {
+        problems.typedError("Message1", MessageProblemType.DEMANDED_IS_NOT_STRING, "@event_name")
+        assertTrue(problems.hasErrors())
+    }
+
+    @Test
+    internal fun `types severe`() {
+        assertThrows<MessageProblems.MessageException> {
+            problems.typedSevere(
+                "Message2",
+                MessageProblemType.DEMANDED_IS_NOT_STRING,
+                "@event_name"
+            )
+        }
+        assertTrue(problems.hasErrors())
     }
 }
