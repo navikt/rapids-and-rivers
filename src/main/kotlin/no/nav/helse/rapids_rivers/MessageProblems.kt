@@ -31,6 +31,10 @@ class MessageProblems(private val originalMessage: String) {
 
     fun hasErrors() = severe.isNotEmpty() || errors.isNotEmpty()
 
+    fun listErrors() = errors
+
+    fun listSevere() = severe
+
     fun toExtendedReport(): String {
         if (!hasErrors()) return "No errors in message\n"
         val results = StringBuffer()

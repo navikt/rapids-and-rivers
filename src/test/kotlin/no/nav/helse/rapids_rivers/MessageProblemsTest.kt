@@ -1,5 +1,7 @@
 package no.nav.helse.rapids_rivers
 
+import no.nav.helse.rapids_rivers.MessageProblemType.DEMANDED_IS_NOT_STRING
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -56,7 +58,7 @@ internal class MessageProblemsTest {
 
     @Test
     internal fun `types error`() {
-        problems.typedError("Message1", MessageProblemType.DEMANDED_IS_NOT_STRING, "@event_name")
+        problems.typedError("Message1", DEMANDED_IS_NOT_STRING, "@event_name")
         assertTrue(problems.hasErrors())
     }
 
@@ -65,10 +67,24 @@ internal class MessageProblemsTest {
         assertThrows<MessageProblems.MessageException> {
             problems.typedSevere(
                 "Message2",
-                MessageProblemType.DEMANDED_IS_NOT_STRING,
+                DEMANDED_IS_NOT_STRING,
                 "@event_name"
             )
         }
         assertTrue(problems.hasErrors())
+    }
+
+    @Test
+    internal fun `all errors return everything`() {
+        problems.typedError("Message1", DEMANDED_IS_NOT_STRING, "@event_name")
+        assertThrows<MessageProblems.MessageException> {
+            problems.typedSevere(
+                "Message2",
+                DEMANDED_IS_NOT_STRING,
+                "@event_name"
+            )
+        }
+        assertEquals(listOf(MessageProblem("Message1", DEMANDED_IS_NOT_STRING, "@event_name")), problems.listErrors())
+        assertEquals(listOf(MessageProblem("Message2", DEMANDED_IS_NOT_STRING, "@event_name")), problems.listSevere())
     }
 }
