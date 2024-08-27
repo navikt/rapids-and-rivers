@@ -3,14 +3,12 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 val jvmTarget = 21
 
 val ktorVersion = "2.3.12"
-val kafkaVersion = "3.8.0"
-val micrometerRegistryPrometheusVersion = "1.13.3"
 val junitJupiterVersion = "5.11.0"
-val jacksonVersion = "2.17.2"
 val logbackClassicVersion = "1.5.7"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.1"
+val tbdLibsVersion = "2024.08.27-12.00-c263a5f7"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -22,21 +20,19 @@ plugins {
 }
 
 dependencies {
+    api("com.github.navikt.tbd-libs:rapids-and-rivers:$tbdLibsVersion")
+
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
 
     api("io.ktor:ktor-server-cio:$ktorVersion")
 
-    api("org.apache.kafka:kafka-clients:$kafkaVersion")
-
-    api("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
-    api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
-
     api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
-    api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    testImplementation("com.github.navikt.tbd-libs:rapids-and-rivers-test:$tbdLibsVersion")
 
     testImplementation("org.testcontainers:kafka:$kafkaTestcontainerVersion")
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
@@ -71,7 +67,20 @@ tasks {
 }
 
 repositories {
+    val githubPassword: String? by project
     mavenCentral()
+    /* ihht. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
+        så plasseres github-maven-repo (med autentisering) før nav-mirror slik at github actions kan anvende førstnevnte.
+        Det er fordi nav-mirroret kjører i Google Cloud og da ville man ellers fått unødvendige utgifter til datatrafikk mellom Google Cloud og GitHub
+     */
+    maven {
+        url = uri("https://maven.pkg.github.com/navikt/maven-release")
+        credentials {
+            username = "x-access-token"
+            password = githubPassword
+        }
+    }
+    maven("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
 }
 
 val githubUser: String? by project

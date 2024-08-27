@@ -1,5 +1,7 @@
 package no.nav.helse.rapids_rivers
 
+import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CountDownLatch

@@ -1,5 +1,6 @@
 package no.nav.helse.rapids_rivers
 
+import com.github.navikt.tbd_libs.kafka.Config
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig

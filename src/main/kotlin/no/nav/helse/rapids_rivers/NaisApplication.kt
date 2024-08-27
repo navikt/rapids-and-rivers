@@ -7,8 +7,6 @@ import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.micrometer.core.instrument.Clock
-import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Metrics.addRegistry
 import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.prometheusmetrics.PrometheusConfig
