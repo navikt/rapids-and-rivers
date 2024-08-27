@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
+import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -215,16 +216,12 @@ internal class RapidApplicationComponentTest {
     ) {
         val randomPort = ServerSocket(0).use { it.localPort }
         appUrl = "http://localhost:$randomPort"
-        val rapidApplicationConfig = RapidApplication.RapidApplicationConfig(
+        val builder = RapidApplication.Builder(
             appName = "app-name",
             instanceId = "app-name-0",
-            rapidTopic = testTopic,
-            kafkaConfig = localConfig,
-            consumerGroupId = "component-test",
-            httpPort = randomPort,
-            metersRegistry = metersRegistry
-        )
-        val builder = RapidApplication.Builder(rapidApplicationConfig)
+            rapid = KafkaRapid(factory, "component-test", testTopic, metersRegistry),
+            meterRegistry = metersRegistry
+        ).withHttpPort(randomPort)
         ktor(randomPort)?.let { builder.withKtor(it) }
         val rapidsConnection = builder.build()
         val job = GlobalScope.launch { rapidsConnection.start() }
