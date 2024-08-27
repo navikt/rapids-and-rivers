@@ -8,14 +8,12 @@ import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.core.instrument.Metrics.addRegistry
-import io.micrometer.core.instrument.binder.MeterBinder
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.slf4j.LoggerFactory
 
 fun defaultNaisApplication(
     port: Int = 8080,
-    extraMetrics: List<MeterBinder> = emptyList(),
     collectorRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
     metricsEndpoint: String,
     isAliveEndpoint: String,
@@ -31,7 +29,7 @@ fun defaultNaisApplication(
     connectors.add(EngineConnectorBuilder().apply {
         this.port = port
     })
-    module(metricsEndpoint(metricsEndpoint, extraMetrics, collectorRegistry))
+    module(metricsEndpoint(metricsEndpoint, collectorRegistry))
     module(healthEndpoint(isAliveEndpoint, isAliveCheck))
     module(healthEndpoint(isReadyEndpoint, isReadyCheck))
     module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
@@ -58,10 +56,9 @@ private fun preStookHookEndpoint(endpoint: String, hook: suspend () -> Unit) = f
         }
     }
 }
-private fun metricsEndpoint(endpoint: String, metrics: List<MeterBinder>, meterRegistry: PrometheusMeterRegistry) = fun Application.() {
+private fun metricsEndpoint(endpoint: String, meterRegistry: PrometheusMeterRegistry) = fun Application.() {
     install(MicrometerMetrics) {
         registry = meterRegistry
-        meterBinders = meterBinders + metrics
         addRegistry(registry)
     }
     routing {

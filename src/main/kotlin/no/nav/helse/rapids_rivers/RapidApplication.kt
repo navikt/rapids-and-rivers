@@ -218,7 +218,6 @@ class RapidApplication internal constructor(
             val stopHook = PreStopHook(rapid)
             return defaultNaisApplication(
                 port = httpPort,
-                extraMetrics = rapid.getMetrics(),
                 collectorRegistry = meterRegistry,
                 isAliveCheck = rapid::isRunning,
                 isReadyCheck = rapid::isReady,
