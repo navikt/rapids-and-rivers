@@ -4,7 +4,7 @@ val jvmTarget = 21
 
 val ktorVersion = "2.3.12"
 val junitJupiterVersion = "5.11.0"
-val logbackClassicVersion = "1.5.7"
+val logbackClassicVersion = "1.5.8"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.1"
