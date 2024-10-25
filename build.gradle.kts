@@ -2,7 +2,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 val jvmTarget = 21
 
-val ktorVersion = "2.3.12"
+val ktorVersion = "3.0.0"
 val junitJupiterVersion = "5.11.0"
 val logbackClassicVersion = "1.5.7"
 val logbackEncoderVersion = "8.0"

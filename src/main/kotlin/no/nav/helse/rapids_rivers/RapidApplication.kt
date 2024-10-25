@@ -7,20 +7,21 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers.createDefaultKafkaRapidFromEnv
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
-import io.ktor.server.application.*
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
+import io.ktor.server.application.Application
+import io.ktor.server.cio.CIOApplicationEngine
+import io.ktor.server.engine.ApplicationEngine
+import io.ktor.server.engine.EmbeddedServer
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
-import org.slf4j.LoggerFactory
 import java.net.InetAddress
-import java.util.*
+import java.util.UUID
+import org.slf4j.LoggerFactory
 
 class RapidApplication internal constructor(
-    private val ktor: ApplicationEngine,
+    private val ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>,
     private val rapid: RapidsConnection,
     private val appName: String? = null,
     private val instanceId: String,
@@ -129,7 +130,7 @@ class RapidApplication internal constructor(
         fun create(
             env: Map<String, String>,
             consumerProducerFactory: ConsumerProducerFactory = ConsumerProducerFactory(AivenConfig.default),
-            configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }
+            configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }
         ): RapidsConnection {
             val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM)
 
@@ -171,7 +172,7 @@ class RapidApplication internal constructor(
         }
 
         private var httpPort = 8080
-        private var ktor: ApplicationEngine? = null
+        private var ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
         private val modules = mutableListOf<Application.() -> Unit>()
 
 
@@ -184,7 +185,7 @@ class RapidApplication internal constructor(
             this.httpPort = httpPort
         }
 
-        fun withKtor(ktor: ApplicationEngine) = apply {
+        fun withKtor(ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>) = apply {
             this.ktor = ktor
         }
 
@@ -208,13 +209,13 @@ class RapidApplication internal constructor(
             this.preStopHookEndpoint = preStopHookEndpoint
         }
 
-        fun build(configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
+        fun build(configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
             val app = ktor ?: defaultKtorApp(cioConfiguration)
             configure(app, rapid)
             return RapidApplication(app, rapid, appName, instanceId)
         }
 
-        private fun defaultKtorApp(cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit): ApplicationEngine {
+        private fun defaultKtorApp(cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
             val stopHook = PreStopHook(rapid)
             return defaultNaisApplication(
                 port = httpPort,

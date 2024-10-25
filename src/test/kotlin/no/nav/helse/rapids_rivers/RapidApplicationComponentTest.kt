@@ -7,32 +7,47 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.ContentType
+import io.ktor.server.cio.CIO
+import io.ktor.server.cio.CIOApplicationEngine
+import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.*
-import org.apache.kafka.clients.consumer.Consumer
-import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import org.testcontainers.containers.KafkaContainer
-import org.testcontainers.utility.DockerImageName
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.ServerSocket
-import java.net.URL
+import java.net.URI
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.stream.Collectors
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.apache.kafka.clients.consumer.Consumer
+import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.utility.DockerImageName
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class RapidApplicationComponentTest {
@@ -161,7 +176,7 @@ internal class RapidApplicationComponentTest {
                 .until { isOkResponse("/metrics") }
 
             val response =
-                BufferedReader(InputStreamReader((URL("$appUrl/metrics").openConnection() as HttpURLConnection).inputStream)).lines()
+                BufferedReader(InputStreamReader((URI("$appUrl/metrics").toURL().openConnection() as HttpURLConnection).inputStream)).lines()
                     .collect(Collectors.joining())
             assertTrue(response.contains("message_counter"))
             assertTrue(response.contains("on_packet_seconds"))
@@ -210,7 +225,7 @@ internal class RapidApplicationComponentTest {
 
     @DelicateCoroutinesApi
     private fun withRapid(
-        ktor: (port: Int) -> ApplicationEngine? = { null },
+        ktor: (port: Int) -> EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = { null },
         metersRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
         block: (RapidsConnection) -> Unit
     ) {
@@ -234,12 +249,12 @@ internal class RapidApplicationComponentTest {
     }
 
     private fun response(path: String) =
-        URL("$appUrl$path").openStream().use { it.bufferedReader().readText() }
+        URI("$appUrl$path").toURL().openStream().use { it.bufferedReader().readText() }
 
     private fun isOkResponse(path: String): Boolean {
         var conn: HttpURLConnection? = null
         try {
-            conn = (URL("$appUrl$path").openConnection() as HttpURLConnection)
+            conn = (URI("$appUrl$path").toURL().openConnection() as HttpURLConnection)
             return conn.responseCode in 200..299
         } catch (err: IOException) {
             System.err.println("$appUrl$path: ${err.message}")
