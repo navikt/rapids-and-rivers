@@ -129,10 +129,9 @@ class RapidApplication internal constructor(
         fun create(
             env: Map<String, String>,
             consumerProducerFactory: ConsumerProducerFactory = ConsumerProducerFactory(AivenConfig.default),
+            meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM),
             configure: (ApplicationEngine, KafkaRapid) -> Unit = { _, _ -> }
         ): RapidsConnection {
-            val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM)
-
             val kafkaRapid = createDefaultKafkaRapidFromEnv(
                 factory = consumerProducerFactory,
                 meterRegistry = meterRegistry,
