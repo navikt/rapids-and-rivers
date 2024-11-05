@@ -8,7 +8,6 @@ import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.response.*
@@ -210,7 +209,7 @@ internal class RapidApplicationComponentTest {
 
     @DelicateCoroutinesApi
     private fun withRapid(
-        ktor: (port: Int) -> ApplicationEngine? = { null },
+        ktor: (port: Int) -> EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = { null },
         metersRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT),
         block: (RapidsConnection) -> Unit
     ) {

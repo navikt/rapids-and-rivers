@@ -24,20 +24,28 @@ fun defaultNaisApplication(
     preStopHook: suspend () -> Unit = { },
     extraModules: List<Application.() -> Unit> = emptyList(),
     cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { },
-) = embeddedServer(CIO, applicationEngineEnvironment {
-    log = LoggerFactory.getLogger(this::class.java)
-    connectors.add(EngineConnectorBuilder().apply {
-        this.port = port
-    })
-    module(metricsEndpoint(metricsEndpoint, collectorRegistry))
-    module(healthEndpoint(isAliveEndpoint, isAliveCheck))
-    module(healthEndpoint(isReadyEndpoint, isReadyCheck))
-    module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
-    modules.addAll(extraModules)
-}) {
-    apply(cioConfiguration)
-    LoggerFactory.getLogger(this::class.java).info("CIO-configuration: parallelism=$parallelism,connectionGroupSize=$connectionGroupSize,workerGroupSize=$workerGroupSize,callGroupSize=$callGroupSize")
+): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
+    val config = serverConfig(
+        environment = applicationEnvironment {
+            log = LoggerFactory.getLogger(this::class.java)
+        }
+    ) {
+        module(metricsEndpoint(metricsEndpoint, collectorRegistry))
+        module(healthEndpoint(isAliveEndpoint, isAliveCheck))
+        module(healthEndpoint(isReadyEndpoint, isReadyCheck))
+        module(preStookHookEndpoint(preStopHookEndpoint, preStopHook))
+        extraModules.forEach { module(it) }
+    }
+
+    return EmbeddedServer(config, CIO) {
+        connectors.add(EngineConnectorBuilder().apply {
+            this.port = port
+        })
+        apply(cioConfiguration)
+        LoggerFactory.getLogger(this::class.java).info("CIO-configuration: parallelism=$parallelism,connectionGroupSize=$connectionGroupSize,workerGroupSize=$workerGroupSize,callGroupSize=$callGroupSize")
+    }
 }
+
 private fun healthEndpoint(endpoint: String, check: () -> Boolean) = fun Application.() {
     routing {
         get(endpoint) {
