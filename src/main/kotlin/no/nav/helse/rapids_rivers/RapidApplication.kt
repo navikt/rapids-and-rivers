@@ -1,7 +1,13 @@
 package no.nav.helse.rapids_rivers
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
+import com.github.navikt.tbd_libs.naisful.NaisEndpoints
+import com.github.navikt.tbd_libs.naisful.naisApp
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers.createDefaultKafkaRapidFromEnv
@@ -130,6 +136,9 @@ class RapidApplication internal constructor(
             env: Map<String, String>,
             consumerProducerFactory: ConsumerProducerFactory = ConsumerProducerFactory(AivenConfig.default),
             meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM),
+            objectMapper: ObjectMapper = jacksonObjectMapper()
+                .registerModule(JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS),
             builder: Builder.() -> Unit = {},
             configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }
         ): RapidsConnection {
@@ -142,7 +151,8 @@ class RapidApplication internal constructor(
                 appName = env["RAPID_APP_NAME"] ?: generateAppName(env),
                 instanceId = generateInstanceId(env),
                 rapid = kafkaRapid,
-                meterRegistry = meterRegistry
+                meterRegistry = meterRegistry,
+                objectMapper = objectMapper
             )
                 .apply(builder)
                 .build(configure)
@@ -165,7 +175,8 @@ class RapidApplication internal constructor(
         private val appName: String?,
         private val instanceId: String,
         private val rapid: KafkaRapid,
-        private val meterRegistry: PrometheusMeterRegistry
+        private val meterRegistry: PrometheusMeterRegistry,
+        private val objectMapper: ObjectMapper
     ) {
 
         init {
@@ -175,12 +186,7 @@ class RapidApplication internal constructor(
         private var httpPort = 8080
         private var ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
         private val modules = mutableListOf<Application.() -> Unit>()
-
-
-        private var isAliveEndpoint = "/isalive"
-        private var isReadyEndpoint = "/isready"
-        private var metricsEndpoint = "/metrics"
-        private var preStopHookEndpoint = "/stop"
+        private var naisEndpoints = NaisEndpoints.Default
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -195,19 +201,19 @@ class RapidApplication internal constructor(
         }
 
         fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
-            this.isAliveEndpoint = isAliveEndpoint
+            naisEndpoints = naisEndpoints.copy(isreadyEndpoint = isAliveEndpoint)
         }
 
         fun withIsReadyEndpoint(isReadyEndpoint: String) = apply {
-            this.isReadyEndpoint = isReadyEndpoint
+            naisEndpoints = naisEndpoints.copy(isreadyEndpoint = isReadyEndpoint)
         }
 
         fun withMetricsEndpoint(metricsEndpoint: String) = apply {
-            this.metricsEndpoint = metricsEndpoint
+            naisEndpoints = naisEndpoints.copy(metricsEndpoint = metricsEndpoint)
         }
 
         fun withPreStopHookEndpoint(preStopHookEndpoint: String) = apply {
-            this.preStopHookEndpoint = preStopHookEndpoint
+            naisEndpoints = naisEndpoints.copy(preStopEndpoint = preStopHookEndpoint)
         }
 
         fun build(configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
@@ -218,18 +224,21 @@ class RapidApplication internal constructor(
 
         private fun defaultKtorApp(cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
             val stopHook = PreStopHook(rapid)
-            return defaultNaisApplication(
+            val applicationLogger = LoggerFactory.getLogger(RapidApplication::class.java)
+            return naisApp(
+                meterRegistry = meterRegistry,
+                objectMapper = objectMapper,
+                applicationLogger = applicationLogger,
+                callLogger = applicationLogger,
+                naisEndpoints = naisEndpoints,
                 port = httpPort,
-                collectorRegistry = meterRegistry,
-                isAliveCheck = rapid::isRunning,
-                isReadyCheck = rapid::isReady,
+                aliveCheck = rapid::isRunning,
+                readyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
-                extraModules = modules,
                 cioConfiguration = cioConfiguration,
-                metricsEndpoint = metricsEndpoint,
-                isAliveEndpoint = isAliveEndpoint,
-                isReadyEndpoint = isReadyEndpoint,
-                preStopHookEndpoint = preStopHookEndpoint
+                applicationModule = {
+                    modules.forEach { it() }
+                }
             )
         }
 

@@ -5,10 +5,10 @@ import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
-import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.kafka.ConfluentKafkaContainer
 import java.util.*
 
-class LocalKafkaConfig(private val kafkaContainer: KafkaContainer) : Config {
+class LocalKafkaConfig(private val kafkaContainer: ConfluentKafkaContainer) : Config {
     override fun producerConfig(properties: Properties): Properties {
         return properties.apply {
             connectionConfig(this)

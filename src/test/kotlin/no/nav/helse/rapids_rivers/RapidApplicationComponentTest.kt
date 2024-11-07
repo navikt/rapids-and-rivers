@@ -19,13 +19,14 @@ import org.apache.kafka.clients.consumer.Consumer
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.testcontainers.containers.KafkaContainer
+import org.testcontainers.kafka.ConfluentKafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.ServerSocket
+import java.net.URI
 import java.net.URL
 import java.time.Duration
 import java.time.LocalDateTime
@@ -42,7 +43,7 @@ internal class RapidApplicationComponentTest {
 
 
     private val testTopic = "a-test-topic"
-    private val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.2.1"))
+    private val kafkaContainer = ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.7.1"))
 
     private val localConfig = LocalKafkaConfig(kafkaContainer)
     private val factory = ConsumerProducerFactory(localConfig)
@@ -160,7 +161,7 @@ internal class RapidApplicationComponentTest {
                 .until { isOkResponse("/metrics") }
 
             val response =
-                BufferedReader(InputStreamReader((URL("$appUrl/metrics").openConnection() as HttpURLConnection).inputStream)).lines()
+                BufferedReader(InputStreamReader((URI("$appUrl/metrics").toURL().openConnection() as HttpURLConnection).inputStream)).lines()
                     .collect(Collectors.joining())
             assertTrue(response.contains("message_counter"))
             assertTrue(response.contains("on_packet_seconds"))
@@ -219,7 +220,8 @@ internal class RapidApplicationComponentTest {
             appName = "app-name",
             instanceId = "app-name-0",
             rapid = KafkaRapid(factory, "component-test", testTopic, metersRegistry),
-            meterRegistry = metersRegistry
+            meterRegistry = metersRegistry,
+            objectMapper = objectMapper,
         ).withHttpPort(randomPort)
         ktor(randomPort)?.let { builder.withKtor(it) }
         val rapidsConnection = builder.build()
@@ -233,12 +235,12 @@ internal class RapidApplicationComponentTest {
     }
 
     private fun response(path: String) =
-        URL("$appUrl$path").openStream().use { it.bufferedReader().readText() }
+        URI("$appUrl$path").toURL().openStream().use { it.bufferedReader().readText() }
 
     private fun isOkResponse(path: String): Boolean {
         var conn: HttpURLConnection? = null
         try {
-            conn = (URL("$appUrl$path").openConnection() as HttpURLConnection)
+            conn = (URI("$appUrl$path").toURL().openConnection() as HttpURLConnection)
             return conn.responseCode in 200..299
         } catch (err: IOException) {
             System.err.println("$appUrl$path: ${err.message}")

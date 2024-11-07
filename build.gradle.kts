@@ -2,13 +2,12 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 val jvmTarget = 21
 
-val ktorVersion = "3.0.1"
 val junitJupiterVersion = "5.11.0"
 val logbackClassicVersion = "1.5.7"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.3"
-val tbdLibsVersion = "2024.11.05-19.31-5dbdf35f"
+val tbdLibsVersion = "2024.11.07-09.04-76a1afb0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -20,14 +19,11 @@ plugins {
 }
 
 dependencies {
+    api("com.github.navikt.tbd-libs:naisful-app:$tbdLibsVersion")
     api("com.github.navikt.tbd-libs:rapids-and-rivers:$tbdLibsVersion")
 
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
-
-    api("io.ktor:ktor-server-cio:$ktorVersion")
-
-    api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junitJupiterVersion")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
