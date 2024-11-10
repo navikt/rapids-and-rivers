@@ -12,6 +12,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers.createDefaultKafkaRapidFromEnv
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -46,8 +47,8 @@ class RapidApplication internal constructor(
         }
     }
 
-    override fun onMessage(message: String, context: MessageContext, metrics: MeterRegistry) {
-        notifyMessage(message, context, metrics)
+    override fun onMessage(message: String, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
+        notifyMessage(message, context, metadata, meterRegistry)
     }
 
     override fun start() {

@@ -5,7 +5,9 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
 import com.github.navikt.tbd_libs.rapids_and_rivers.asLocalDateTime
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalDateTime
@@ -26,7 +28,7 @@ class PingPong(rapidsConnection: RapidsConnection, private val appName: String, 
 
     private var lastPing: LocalDateTime? = null
 
-    override fun onPacket(packet: JsonMessage, context: MessageContext) {
+    override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
         val pingTime = packet["ping_time"].asLocalDateTime()
         val now = LocalDateTime.now()
         if (pingTime < now.minusHours(1) || (lastPing != null && Duration.between(lastPing, pingTime) <= Duration.ofSeconds(5))) return // ignoring old pings or very frequent ones
