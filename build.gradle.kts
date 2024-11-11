@@ -56,10 +56,6 @@ tasks {
             showStandardStreams = true
         }
     }
-
-    withType<Wrapper> {
-        gradleVersion = "8.10"
-    }
 }
 
 repositories {
