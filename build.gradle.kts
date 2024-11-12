@@ -1,6 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
-val junitJupiterVersion = "5.11.0"
+val junitJupiterVersion = "5.11.3"
 val logbackClassicVersion = "1.5.7"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
