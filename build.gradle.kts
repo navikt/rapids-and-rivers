@@ -1,7 +1,5 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
-val jvmTarget = 21
-
 val junitJupiterVersion = "5.11.0"
 val logbackClassicVersion = "1.5.7"
 val logbackEncoderVersion = "8.0"
@@ -38,13 +36,13 @@ java {
     withSourcesJar()
 }
 
-tasks {
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(jvmTarget)
-        }
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of("21"))
     }
+}
 
+tasks {
     withType<Test> {
         useJUnitPlatform()
         testLogging {
