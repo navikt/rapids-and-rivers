@@ -7,6 +7,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.naisful.NaisEndpoints
+import com.github.navikt.tbd_libs.naisful.defaultStatusPagesConfig
 import com.github.navikt.tbd_libs.naisful.naisApp
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
@@ -17,6 +18,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
@@ -188,6 +190,7 @@ class RapidApplication internal constructor(
         private var ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
         private val modules = mutableListOf<Application.() -> Unit>()
         private var naisEndpoints = NaisEndpoints.Default
+        private var statusPagesConfig: StatusPagesConfig.() -> Unit = { defaultStatusPagesConfig() }
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -199,6 +202,10 @@ class RapidApplication internal constructor(
 
         fun withKtorModule(module: Application.() -> Unit) = apply {
             this.modules.add(module)
+        }
+
+        fun withStatusPagesConfig(statusPagesConfig: StatusPagesConfig.() -> Unit) = apply {
+            this.statusPagesConfig = statusPagesConfig
         }
 
         fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
@@ -237,6 +244,7 @@ class RapidApplication internal constructor(
                 readyCheck = rapid::isReady,
                 preStopHook = stopHook::handlePreStopRequest,
                 cioConfiguration = cioConfiguration,
+                statusPagesConfig = statusPagesConfig,
                 applicationModule = {
                     modules.forEach { it() }
                 }
