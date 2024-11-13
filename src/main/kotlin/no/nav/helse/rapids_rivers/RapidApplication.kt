@@ -191,6 +191,7 @@ class RapidApplication internal constructor(
         private val modules = mutableListOf<Application.() -> Unit>()
         private var naisEndpoints = NaisEndpoints.Default
         private var statusPagesConfig: StatusPagesConfig.() -> Unit = { defaultStatusPagesConfig() }
+        private var callIdHeader: String = "callId"
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -206,6 +207,10 @@ class RapidApplication internal constructor(
 
         fun withStatusPagesConfig(statusPagesConfig: StatusPagesConfig.() -> Unit) = apply {
             this.statusPagesConfig = statusPagesConfig
+        }
+
+        fun withCallIdHeader(headerName: String) = apply {
+            callIdHeader = headerName
         }
 
         fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
@@ -239,6 +244,7 @@ class RapidApplication internal constructor(
                 applicationLogger = applicationLogger,
                 callLogger = applicationLogger,
                 naisEndpoints = naisEndpoints,
+                callIdHeaderName = callIdHeader,
                 port = httpPort,
                 aliveCheck = rapid::isRunning,
                 readyCheck = rapid::isReady,
