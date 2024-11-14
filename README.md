@@ -66,7 +66,7 @@ internal class MyCoolApp(
 
     init {
         River(rapidsConnection).apply {
-            validate { it.demandValue("@event_name", "my_event") }
+            precondition { it.requireValue("@event_name", "my_event") }
             validate { it.requireKey("a_required_key") }
             // nested objects can be chained using "."
             validate { it.requireValue("nested.key", "works_as_well") }
@@ -74,8 +74,8 @@ internal class MyCoolApp(
     }
    
     override fun onError(problems: MessageProblems, context: MessageContext, metadata: MessageMetadata) {
-        /* fordi vi bruker demandValue() på event_name kan vi trygt anta at meldingen
-           er "my_event", og at det er minst én av de ulike require*() som har feilet */   
+        /* fordi vi bruker precondition() på event_name kan vi trygt anta at meldingen
+           er "my_event", og at det er minst én av de ulike validate() som har feilet */   
     }
 
     override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
