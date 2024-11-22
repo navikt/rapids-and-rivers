@@ -192,6 +192,8 @@ class RapidApplication internal constructor(
         private var naisEndpoints = NaisEndpoints.Default
         private var statusPagesConfig: StatusPagesConfig.() -> Unit = { defaultStatusPagesConfig() }
         private var callIdHeader: String = "callId"
+        private val isAliveChecks = mutableSetOf<() -> Boolean>(rapid::isRunning)
+        private val isReadyChecks = mutableSetOf<() -> Boolean>(rapid::isReady)
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -217,8 +219,16 @@ class RapidApplication internal constructor(
             naisEndpoints = naisEndpoints.copy(isreadyEndpoint = isAliveEndpoint)
         }
 
+        fun withIsAliveCheck(check: () -> Boolean) = apply {
+            isAliveChecks.add(check)
+        }
+
         fun withIsReadyEndpoint(isReadyEndpoint: String) = apply {
             naisEndpoints = naisEndpoints.copy(isreadyEndpoint = isReadyEndpoint)
+        }
+
+        fun withIsReadyCheck(check: () -> Boolean) = apply {
+            isReadyChecks.add(check)
         }
 
         fun withMetricsEndpoint(metricsEndpoint: String) = apply {
@@ -246,8 +256,8 @@ class RapidApplication internal constructor(
                 naisEndpoints = naisEndpoints,
                 callIdHeaderName = callIdHeader,
                 port = httpPort,
-                aliveCheck = rapid::isRunning,
-                readyCheck = rapid::isReady,
+                aliveCheck = { isAliveChecks.all { it() } },
+                readyCheck = { isReadyChecks.all { it() } },
                 preStopHook = stopHook::handlePreStopRequest,
                 cioConfiguration = cioConfiguration,
                 statusPagesConfig = statusPagesConfig,
