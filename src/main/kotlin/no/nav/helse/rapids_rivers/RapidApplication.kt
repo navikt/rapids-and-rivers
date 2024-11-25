@@ -281,11 +281,11 @@ class RapidApplication internal constructor(
 
                     with(meterRegistry) {
                         val pkg = RapidApplication.javaClass.`package`
-                        val vendor = pkg?.implementationVendor ?: "unknown"
+                        val title = pkg?.implementationTitle ?: "unknown"
                         val version = pkg?.implementationVersion ?: "unknown"
                         MultiGauge.builder("rapids.and.rivers.info")
                             .description("Rapids and rivers version info")
-                            .tag("vendor", vendor)
+                            .tag("title", title)
                             .tag("version", version)
                             .register(this)
                             .register(listOf(MultiGauge.Row.of(Tags.of(emptyList()), 1)))

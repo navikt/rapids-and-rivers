@@ -34,12 +34,6 @@ dependencies {
 
 java {
     withSourcesJar()
-    manifest {
-        attributes(mapOf(
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version
-        ))
-    }
 }
 
 kotlin {
@@ -49,6 +43,14 @@ kotlin {
 }
 
 tasks {
+    jar {
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version
+            ))
+        }
+    }
     withType<Test> {
         useJUnitPlatform()
         testLogging {
