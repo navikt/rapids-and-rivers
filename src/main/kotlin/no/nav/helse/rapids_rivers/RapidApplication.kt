@@ -21,6 +21,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.MultiGauge
+import io.micrometer.core.instrument.Tags
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
@@ -263,6 +265,18 @@ class RapidApplication internal constructor(
                 statusPagesConfig = statusPagesConfig,
                 applicationModule = {
                     modules.forEach { it() }
+
+                    with(meterRegistry) {
+                        val pkg = this.javaClass.`package`
+                        val vendor = pkg?.implementationVendor ?: "unknown"
+                        val version = pkg?.implementationVersion ?: "unknown"
+                        MultiGauge.builder("rapids.and.rivers.info")
+                            .description("Rapids and rivers version info")
+                            .tag("vendor", vendor)
+                            .tag("version", version)
+                            .register(this)
+                            .register(listOf(MultiGauge.Row.of(Tags.of(emptyList()), 1)))
+                    }
                 }
             )
         }
