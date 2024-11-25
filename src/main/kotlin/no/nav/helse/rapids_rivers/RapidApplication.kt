@@ -23,6 +23,7 @@ import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.MultiGauge
 import io.micrometer.core.instrument.Tags
+import io.micrometer.core.instrument.Timer
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
@@ -196,6 +197,8 @@ class RapidApplication internal constructor(
         private var callIdHeader: String = "callId"
         private val isAliveChecks = mutableSetOf<() -> Boolean>(rapid::isRunning)
         private val isReadyChecks = mutableSetOf<() -> Boolean>(rapid::isReady)
+        private var timersConfig: Timer.Builder.(ApplicationCall, Throwable?) -> Unit = { _, _ -> }
+        private var mdcEntries: Map<String, (ApplicationCall) -> String?> = emptyMap()
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -211,6 +214,14 @@ class RapidApplication internal constructor(
 
         fun withStatusPagesConfig(statusPagesConfig: StatusPagesConfig.() -> Unit) = apply {
             this.statusPagesConfig = statusPagesConfig
+        }
+
+        fun withTimersConfig(timersConfig: Timer.Builder.(ApplicationCall, Throwable?) -> Unit) = apply {
+            this.timersConfig = timersConfig
+        }
+
+        fun withMdcEntries(mdcEntries: Map<String, (ApplicationCall) -> String?>) = apply {
+            this.mdcEntries = mdcEntries
         }
 
         fun withCallIdHeader(headerName: String) = apply {
@@ -263,6 +274,8 @@ class RapidApplication internal constructor(
                 preStopHook = stopHook::handlePreStopRequest,
                 cioConfiguration = cioConfiguration,
                 statusPagesConfig = statusPagesConfig,
+                timersConfig = timersConfig,
+                mdcEntries = mdcEntries,
                 applicationModule = {
                     modules.forEach { it() }
 
