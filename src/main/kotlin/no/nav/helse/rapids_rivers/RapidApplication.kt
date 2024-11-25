@@ -280,7 +280,7 @@ class RapidApplication internal constructor(
                     modules.forEach { it() }
 
                     with(meterRegistry) {
-                        val pkg = this.javaClass.`package`
+                        val pkg = RapidApplication.javaClass.`package`
                         val vendor = pkg?.implementationVendor ?: "unknown"
                         val version = pkg?.implementationVersion ?: "unknown"
                         MultiGauge.builder("rapids.and.rivers.info")
