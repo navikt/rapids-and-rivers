@@ -4,7 +4,7 @@ val junitJupiterVersion = "5.11.3"
 val logbackClassicVersion = "1.5.12"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
-val kafkaTestcontainerVersion = "1.20.3"
+val kafkaTestcontainerVersion = "1.20.4"
 val tbdLibsVersion = "2024.11.25-10.16-d75e0dd1"
 
 group = "com.github.navikt"
