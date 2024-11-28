@@ -5,13 +5,13 @@ val logbackClassicVersion = "1.5.12"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.4"
-val tbdLibsVersion = "2024.11.25-10.59-6f263a10"
+val tbdLibsVersion = "2024.11.27-20.55-cba36a86"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.0"
     id("java")
     id("maven-publish")
 }
