@@ -27,7 +27,6 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URI
-import java.net.URL
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
@@ -220,8 +219,7 @@ internal class RapidApplicationComponentTest {
             appName = "app-name",
             instanceId = "app-name-0",
             rapid = KafkaRapid(factory, "component-test", testTopic, metersRegistry),
-            meterRegistry = metersRegistry,
-            objectMapper = objectMapper,
+            meterRegistry = metersRegistry
         ).withHttpPort(randomPort)
         ktor(randomPort)?.let { builder.withKtor(it) }
         val rapidsConnection = builder.build()

@@ -1,5 +1,8 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
+val slf4jVersion = "2.0.16"
+val ktorVersion = "3.0.1"
+val micrometerRegistryPrometheusVersion = "1.13.6"
 val junitJupiterVersion = "5.11.3"
 val logbackClassicVersion = "1.5.12"
 val logbackEncoderVersion = "8.0"
@@ -17,8 +20,14 @@ plugins {
 }
 
 dependencies {
-    api("com.github.navikt.tbd-libs:naisful-app:$tbdLibsVersion")
+    api("org.slf4j:slf4j-api:$slf4jVersion")
+
     api("com.github.navikt.tbd-libs:rapids-and-rivers:$tbdLibsVersion")
+
+    api("io.ktor:ktor-server-cio:$ktorVersion")
+
+    api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
 
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")

@@ -1,14 +1,7 @@
 package no.nav.helse.rapids_rivers
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.AivenConfig
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
-import com.github.navikt.tbd_libs.naisful.NaisEndpoints
-import com.github.navikt.tbd_libs.naisful.defaultStatusPagesConfig
-import com.github.navikt.tbd_libs.naisful.naisApp
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers.createDefaultKafkaRapidFromEnv
@@ -18,12 +11,10 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.plugins.statuspages.StatusPagesConfig
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.MultiGauge
 import io.micrometer.core.instrument.Tags
-import io.micrometer.core.instrument.Timer
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
@@ -142,9 +133,6 @@ class RapidApplication internal constructor(
             env: Map<String, String>,
             consumerProducerFactory: ConsumerProducerFactory = ConsumerProducerFactory(AivenConfig.default),
             meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM),
-            objectMapper: ObjectMapper = jacksonObjectMapper()
-                .registerModule(JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS),
             builder: Builder.() -> Unit = {},
             configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }
         ): RapidsConnection {
@@ -157,8 +145,7 @@ class RapidApplication internal constructor(
                 appName = env["RAPID_APP_NAME"] ?: generateAppName(env),
                 instanceId = generateInstanceId(env),
                 rapid = kafkaRapid,
-                meterRegistry = meterRegistry,
-                objectMapper = objectMapper
+                meterRegistry = meterRegistry
             )
                 .apply(builder)
                 .build(configure)
@@ -181,8 +168,7 @@ class RapidApplication internal constructor(
         private val appName: String?,
         private val instanceId: String,
         private val rapid: KafkaRapid,
-        private val meterRegistry: PrometheusMeterRegistry,
-        private val objectMapper: ObjectMapper
+        private val meterRegistry: PrometheusMeterRegistry
     ) {
 
         init {
@@ -193,12 +179,9 @@ class RapidApplication internal constructor(
         private var ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
         private val modules = mutableListOf<Application.() -> Unit>()
         private var naisEndpoints = NaisEndpoints.Default
-        private var statusPagesConfig: StatusPagesConfig.() -> Unit = { defaultStatusPagesConfig() }
-        private var callIdHeader: String = "callId"
         private val isAliveChecks = mutableSetOf<() -> Boolean>(rapid::isRunning)
         private val isReadyChecks = mutableSetOf<() -> Boolean>(rapid::isReady)
-        private var timersConfig: Timer.Builder.(ApplicationCall, Throwable?) -> Unit = { _, _ -> }
-        private var mdcEntries: Map<String, (ApplicationCall) -> String?> = emptyMap()
+        private val stopHook = PreStopHook(rapid)
 
         fun withHttpPort(httpPort: Int) = apply {
             this.httpPort = httpPort
@@ -208,24 +191,12 @@ class RapidApplication internal constructor(
             this.ktor = ktor
         }
 
+        fun withKtor(ktor: (PreStopHook, KafkaRapid) -> EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>) = apply {
+            this.ktor = ktor(stopHook, rapid)
+        }
+
         fun withKtorModule(module: Application.() -> Unit) = apply {
             this.modules.add(module)
-        }
-
-        fun withStatusPagesConfig(statusPagesConfig: StatusPagesConfig.() -> Unit) = apply {
-            this.statusPagesConfig = statusPagesConfig
-        }
-
-        fun withTimersConfig(timersConfig: Timer.Builder.(ApplicationCall, Throwable?) -> Unit) = apply {
-            this.timersConfig = timersConfig
-        }
-
-        fun withMdcEntries(mdcEntries: Map<String, (ApplicationCall) -> String?>) = apply {
-            this.mdcEntries = mdcEntries
-        }
-
-        fun withCallIdHeader(headerName: String) = apply {
-            callIdHeader = headerName
         }
 
         fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
@@ -255,42 +226,30 @@ class RapidApplication internal constructor(
         fun build(configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
             val app = ktor ?: defaultKtorApp(cioConfiguration)
             configure(app, rapid)
+            with(meterRegistry) {
+                val pkg = RapidApplication.javaClass.`package`
+                val title = pkg?.implementationTitle ?: "unknown"
+                val version = pkg?.implementationVersion ?: "unknown"
+                MultiGauge.builder("rapids.and.rivers.info")
+                    .description("Rapids and rivers version info")
+                    .tag("title", title)
+                    .tag("version", version)
+                    .register(this)
+                    .register(listOf(MultiGauge.Row.of(Tags.of(emptyList()), 1)))
+            }
             return RapidApplication(app, rapid, appName, instanceId)
         }
 
         private fun defaultKtorApp(cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
-            val stopHook = PreStopHook(rapid)
-            val applicationLogger = LoggerFactory.getLogger(RapidApplication::class.java)
-            return naisApp(
+            return ktorApplication(
                 meterRegistry = meterRegistry,
-                objectMapper = objectMapper,
-                applicationLogger = applicationLogger,
-                callLogger = applicationLogger,
                 naisEndpoints = naisEndpoints,
-                callIdHeaderName = callIdHeader,
                 port = httpPort,
                 aliveCheck = { isAliveChecks.all { it() } },
                 readyCheck = { isReadyChecks.all { it() } },
                 preStopHook = stopHook::handlePreStopRequest,
                 cioConfiguration = cioConfiguration,
-                statusPagesConfig = statusPagesConfig,
-                timersConfig = timersConfig,
-                mdcEntries = mdcEntries,
-                applicationModule = {
-                    modules.forEach { it() }
-
-                    with(meterRegistry) {
-                        val pkg = RapidApplication.javaClass.`package`
-                        val title = pkg?.implementationTitle ?: "unknown"
-                        val version = pkg?.implementationVersion ?: "unknown"
-                        MultiGauge.builder("rapids.and.rivers.info")
-                            .description("Rapids and rivers version info")
-                            .tag("title", title)
-                            .tag("version", version)
-                            .register(this)
-                            .register(listOf(MultiGauge.Row.of(Tags.of(emptyList()), 1)))
-                    }
-                }
+                modules = modules
             )
         }
 
