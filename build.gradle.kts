@@ -1,20 +1,20 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 val slf4jVersion = "2.0.16"
-val ktorVersion = "3.0.1"
-val micrometerRegistryPrometheusVersion = "1.13.6"
+val ktorVersion = "3.0.2"
+val micrometerRegistryPrometheusVersion = "1.14.1"
 val junitJupiterVersion = "5.11.3"
 val logbackClassicVersion = "1.5.12"
 val logbackEncoderVersion = "8.0"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.4"
-val tbdLibsVersion = "2024.11.25-10.59-6f263a10"
+val tbdLibsVersion = "2024.11.29-15.07-105481e3"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.0"
     id("java")
     id("maven-publish")
 }
