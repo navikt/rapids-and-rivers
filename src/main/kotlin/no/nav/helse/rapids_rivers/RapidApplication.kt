@@ -43,7 +43,12 @@ class RapidApplication internal constructor(
         }
     }
 
-    override fun onMessage(message: String, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
+    override fun onMessage(
+        message: String,
+        context: MessageContext,
+        metadata: MessageMetadata,
+        meterRegistry: MeterRegistry
+    ) {
         notifyMessage(message, context, metadata, meterRegistry)
     }
 
@@ -54,11 +59,7 @@ class RapidApplication internal constructor(
             rapid.start()
         } finally {
             onKtorShutdown()
-            val gracePeriod = 5000L
-            val forcefulShutdownTimeout = 30000L
-            log.info("shutting down ktor, waiting $gracePeriod ms for workers to exit. Forcing shutdown after $forcefulShutdownTimeout ms")
-            ktor.stop(gracePeriod, forcefulShutdownTimeout)
-            log.info("ktor shutdown complete: end of life. goodbye.")
+            log.info("shutdown complete: end of life. goodbye.")
         }
     }
 
@@ -113,16 +114,20 @@ class RapidApplication internal constructor(
             log.info("publishing $event event for app_name=$appName, instance_id=$instanceId")
             try {
                 rapidsConnection.publish(it)
-            } catch (err: Exception) { log.info("failed to publish event: {}", err.message, err) }
+            } catch (err: Exception) {
+                log.info("failed to publish event: {}", err.message, err)
+            }
         }
     }
 
     private fun applicationEvent(event: String): String? {
         if (appName == null) return null
-        val packet = JsonMessage.newMessage(event, mapOf(
-            "app_name" to appName,
-            "instance_id" to instanceId
-        ))
+        val packet = JsonMessage.newMessage(
+            event, mapOf(
+                "app_name" to appName,
+                "instance_id" to instanceId
+            )
+        )
         return packet.toJson()
     }
 
@@ -132,7 +137,11 @@ class RapidApplication internal constructor(
         fun create(
             env: Map<String, String>,
             consumerProducerFactory: ConsumerProducerFactory = ConsumerProducerFactory(AivenConfig.default),
-            meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT, PrometheusRegistry.defaultRegistry, Clock.SYSTEM),
+            meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(
+                PrometheusConfig.DEFAULT,
+                PrometheusRegistry.defaultRegistry,
+                Clock.SYSTEM
+            ),
             builder: Builder.() -> Unit = {},
             configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }
         ): RapidsConnection {
@@ -157,9 +166,15 @@ class RapidApplication internal constructor(
         }
 
         private fun generateAppName(env: Map<String, String>): String? {
-            val appName = env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set").let { null }
-            val namespace = env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set").let { null }
-            val cluster = env["NAIS_CLUSTER_NAME"] ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set").let { null }
+            val appName =
+                env["NAIS_APP_NAME"] ?: return log.info("not generating app name because NAIS_APP_NAME not set")
+                    .let { null }
+            val namespace =
+                env["NAIS_NAMESPACE"] ?: return log.info("not generating app name because NAIS_NAMESPACE not set")
+                    .let { null }
+            val cluster =
+                env["NAIS_CLUSTER_NAME"] ?: return log.info("not generating app name because NAIS_CLUSTER_NAME not set")
+                    .let { null }
             return "$appName-$cluster-$namespace"
         }
     }
@@ -191,9 +206,10 @@ class RapidApplication internal constructor(
             this.ktor = ktor
         }
 
-        fun withKtor(ktor: (PreStopHook, KafkaRapid) -> EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>) = apply {
-            this.ktor = ktor(stopHook, rapid)
-        }
+        fun withKtor(ktor: (PreStopHook, KafkaRapid) -> EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>) =
+            apply {
+                this.ktor = ktor(stopHook, rapid)
+            }
 
         fun withKtorModule(module: Application.() -> Unit) = apply {
             this.modules.add(module)
@@ -223,7 +239,10 @@ class RapidApplication internal constructor(
             naisEndpoints = naisEndpoints.copy(preStopEndpoint = preStopHookEndpoint)
         }
 
-        fun build(configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }, cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { } ): RapidsConnection {
+        fun build(
+            configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> },
+            cioConfiguration: CIOApplicationEngine.Configuration.() -> Unit = { }
+        ): RapidsConnection {
             val app = ktor ?: defaultKtorApp(cioConfiguration)
             configure(app, rapid)
             with(meterRegistry) {

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.CONFLATED
 import kotlinx.coroutines.channels.Channel.Factory.RENDEZVOUS
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -17,6 +18,7 @@ class PreStopHook(private val rapid: KafkaRapid) : RapidsConnection.StatusListen
     private companion object {
         val log = LoggerFactory.getLogger(this::class.java)
     }
+
     // bruker CONFLATED som er en channel med buffer på 1, hvor hver ny melding overskriver den forrige
     // i praksis vil dette bety at vi ikke blokkerer senderen av shutdown-signalet
     private val shutdownChannel = Channel<Boolean>(CONFLATED)
@@ -25,7 +27,7 @@ class PreStopHook(private val rapid: KafkaRapid) : RapidsConnection.StatusListen
         rapid.register(this)
     }
 
-    override fun onShutdown(rapidsConnection: RapidsConnection) {
+    override fun onShutdownComplete(rapidsConnection: RapidsConnection) {
         runBlocking(Dispatchers.IO) {
             try {
                 withTimeout(1.seconds) {
