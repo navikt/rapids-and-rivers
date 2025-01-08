@@ -13,7 +13,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21.x'
       - name: test and build
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: build
   release:
@@ -29,7 +29,7 @@ jobs:
         run: |
           export TAG_NAME="$(TZ="Europe/Oslo" date +%Y%m%d%H%M%s).$(echo $GITHUB_SHA | cut -c 1-12)"
           echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
-      - uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5 # ratchet:ncipollo/release-action@v1
+      - uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # ratchet:ncipollo/release-action@v1
         with:
           tag: ${{ env.RELEASE_TAG }}
           generateReleaseNotes: true
@@ -47,7 +47,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21.x'
       - name: publish
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: -Pversion=${{ needs.release.outputs.tag }} publish
         env:
