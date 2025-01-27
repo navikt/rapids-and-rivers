@@ -12,7 +12,7 @@ jobs:
           distribution: 'temurin'
           java-version: '21.x'
       - name: test
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
         with:
           arguments: test
         env:
