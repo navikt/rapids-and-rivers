@@ -47,9 +47,9 @@ class RapidApplication internal constructor(
         message: String,
         context: MessageContext,
         metadata: MessageMetadata,
-        meterRegistry: MeterRegistry
+        metrics: MeterRegistry
     ) {
-        notifyMessage(message, context, metadata, meterRegistry)
+        notifyMessage(message, context, metadata, metrics)
     }
 
     override fun start() {
@@ -246,7 +246,7 @@ class RapidApplication internal constructor(
             val app = ktor ?: defaultKtorApp(cioConfiguration)
             configure(app, rapid)
             with(meterRegistry) {
-                val pkg = RapidApplication.javaClass.`package`
+                val pkg = RapidApplication::class.java.`package`
                 val title = pkg?.implementationTitle ?: "unknown"
                 val version = pkg?.implementationVersion ?: "unknown"
                 MultiGauge.builder("rapids.and.rivers.info")
