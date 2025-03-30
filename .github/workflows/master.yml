@@ -12,10 +12,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21.x'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: test and build
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: build
+        run: ./gradlew build
   release:
     name: Create Release
     needs: build
@@ -46,10 +46,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21.x'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: publish
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: -Pversion=${{ needs.release.outputs.tag }} publish
+        run: ./gradlew -Pversion=${{ needs.release.outputs.tag }} publish
         env:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}

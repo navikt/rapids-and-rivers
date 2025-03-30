@@ -11,10 +11,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21.x'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: test
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: test
+        run: ./gradlew test
         env:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
           ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}
