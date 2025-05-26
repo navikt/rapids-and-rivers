@@ -7,6 +7,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers.createDefaultKafkaRapidFromEnv
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.OutgoingMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -73,6 +74,10 @@ class RapidApplication internal constructor(
 
     override fun publish(key: String, message: String) {
         rapid.publish(key, message)
+    }
+
+    override fun publishBulk(messages: List<OutgoingMessage>) {
+        rapid.publishBulk(messages)
     }
 
     override fun rapidName(): String {
