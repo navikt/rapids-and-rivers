@@ -29,7 +29,7 @@ jobs:
         run: |
           export TAG_NAME="$(TZ="Europe/Oslo" date +%Y%m%d%H%M%s).$(echo $GITHUB_SHA | cut -c 1-12)"
           echo "RELEASE_TAG=$TAG_NAME" >> $GITHUB_ENV
-      - uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5 # ratchet:ncipollo/release-action@v1
+      - uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # ratchet:ncipollo/release-action@v1
         with:
           tag: ${{ env.RELEASE_TAG }}
           generateReleaseNotes: true
