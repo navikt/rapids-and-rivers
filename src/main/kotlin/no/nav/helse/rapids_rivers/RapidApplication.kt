@@ -223,7 +223,7 @@ class RapidApplication internal constructor(
         }
 
         fun withIsAliveEndpoint(isAliveEndpoint: String) = apply {
-            naisEndpoints = naisEndpoints.copy(isreadyEndpoint = isAliveEndpoint)
+            naisEndpoints = naisEndpoints.copy(isaliveEndpoint = isAliveEndpoint)
         }
 
         fun withIsAliveCheck(check: () -> Boolean) = apply {
