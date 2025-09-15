@@ -8,7 +8,7 @@ val logbackClassicVersion = "1.5.18"
 val logbackEncoderVersion = "8.1"
 val awaitilityVersion = "4.2.2"
 val kafkaTestcontainerVersion = "1.20.6"
-val tbdLibsVersion = "2025.08.16-09.21-71db7cad"
+val tbdLibsVersion = "2025.09.15-14.41-2bf93bde"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
