@@ -7,7 +7,7 @@ val junitJupiterVersion = "5.12.1"
 val logbackClassicVersion = "1.5.18"
 val logbackEncoderVersion = "8.1"
 val awaitilityVersion = "4.2.2"
-val kafkaTestcontainerVersion = "1.20.6"
+val kafkaTestcontainerVersion = "2.0.3"
 val tbdLibsVersion = "2025.11.04-10.12-3a167132"
 
 group = "com.github.navikt"
@@ -37,7 +37,7 @@ dependencies {
 
     testImplementation("com.github.navikt.tbd-libs:rapids-and-rivers-test:$tbdLibsVersion")
 
-    testImplementation("org.testcontainers:kafka:$kafkaTestcontainerVersion")
+    testImplementation("org.testcontainers:testcontainers-kafka:$kafkaTestcontainerVersion")
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
 }
 
