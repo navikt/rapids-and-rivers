@@ -4,17 +4,17 @@ val slf4jVersion = "2.0.17"
 val ktorVersion = "3.4.0"
 val micrometerRegistryPrometheusVersion = "1.16.2"
 val junitJupiterVersion = "6.0.2"
-val logbackClassicVersion = "1.5.25"
+val logbackClassicVersion = "1.5.27"
 val logbackEncoderVersion = "9.0"
 val awaitilityVersion = "4.3.0"
 val kafkaTestcontainerVersion = "2.0.3"
-val tbdLibsVersion = "2026.01.23-20.46-6236b42d"
+val tbdLibsVersion = "2026.01.28-07.21-5436e475"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.3.10"
     id("java")
     id("maven-publish")
 }
