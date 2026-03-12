@@ -17,4 +17,4 @@ jobs:
         run: ./gradlew test
         env:
           ORG_GRADLE_PROJECT_githubUser: x-access-token
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_GRADLE_PROJECT_githubPassword: ${{ secrets.GITHUB_TOKEN }}

@@ -75,21 +75,21 @@ tasks {
     }
 }
 
-// Sett opp repositories basert på om vi kjører i CI eller ikke
-// Jf. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
 repositories {
+    val githubPassword: String? by project
     mavenCentral()
-    if (providers.environmentVariable("GITHUB_ACTIONS").orNull == "true") {
-        maven {
-            url = uri("https://maven.pkg.github.com/navikt/maven-release")
-            credentials {
-                username = "token"
-                password = providers.environmentVariable("GITHUB_TOKEN").orNull!!
-            }
+    /* ihht. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
+        så plasseres github-maven-repo (med autentisering) før nav-mirror slik at github actions kan anvende førstnevnte.
+        Det er fordi nav-mirroret kjører i Google Cloud og da ville man ellers fått unødvendige utgifter til datatrafikk mellom Google Cloud og GitHub
+     */
+    maven {
+        url = uri("https://maven.pkg.github.com/navikt/maven-release")
+        credentials {
+            username = "x-access-token"
+            password = githubPassword
         }
-    } else {
-        maven("https://repo.adeo.no/repository/github-package-registry-navikt/")
     }
+    maven("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
 }
 
 val githubUser: String? by project
