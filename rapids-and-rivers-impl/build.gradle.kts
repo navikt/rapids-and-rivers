@@ -1,6 +1,6 @@
 val awaitilityVersion = "4.3.0"
-val otelVersion = "2.9.0"
-val kotlinxCoroutinesVersion = "1.9.0"
+val otelVersion = "2.26.0"
+val kotlinxCoroutinesVersion = "1.10.2"
 
 dependencies {
     api(project(":kafka"))
@@ -16,6 +16,6 @@ dependencies {
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinxCoroutinesVersion")
 
-    testImplementation("ch.qos.logback:logback-classic:1.5.18")
-    testImplementation("net.logstash.logback:logstash-logback-encoder:8.0")
+    testImplementation("ch.qos.logback:logback-classic:1.5.32")
+    testImplementation("net.logstash.logback:logstash-logback-encoder:9.0")
 }
