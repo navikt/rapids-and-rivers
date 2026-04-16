@@ -56,6 +56,10 @@ tasks {
     }
 }
 
+subprojects {
+    group = "com.github.navikt.rapids-and-rivers"
+}
+
 allprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.gradle.maven-publish")
@@ -111,7 +115,6 @@ allprojects {
         publications {
             create<MavenPublication>("maven") {
                 from(components["java"])
-                groupId = "com.github.navikt.rapids-and-rivers"
                 artifactId = project.name
                 version = "${this@allprojects.version}"
             }
