@@ -1,8 +1,5 @@
 package com.github.navikt.tbd_libs.rapids_and_rivers
 
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.Config
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
@@ -13,30 +10,45 @@ import com.github.navikt.tbd_libs.test_support.KafkaContainers
 import com.github.navikt.tbd_libs.test_support.TestTopic
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import kotlinx.coroutines.*
+import java.time.Duration
+import java.time.LocalDateTime
+import java.util.Properties
+import java.util.UUID
+import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.random.Random
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.Channel.Factory.RENDEZVOUS
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
 import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import java.time.Duration
-import java.time.LocalDateTime
-import java.util.*
-import java.util.concurrent.TimeUnit.SECONDS
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.random.Random
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.Channel.Factory.RENDEZVOUS
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.fail
+import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 internal class RapidIntegrationTest {
     private companion object {
         private val kafkaContainer = KafkaContainers.container("tbd-rapid-and-rivers")
     }
-    private val objectMapper = jacksonObjectMapper()
-        .registerModule(JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
+    private val objectMapper = jacksonMapperBuilder()
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .build()
 
     private fun rapidE2E(testblokk: suspend TestContext.(Job) -> Unit) = runBlocking {
         val (testTopic, extraTestTopic) = kafkaContainer.nyeTopics(2)
@@ -105,7 +117,7 @@ internal class RapidIntegrationTest {
         await()
             .atMost(10, SECONDS)
             .until {
-                runBlocking {  it.join() }
+                runBlocking { it.join() }
                 true
             }
     }
@@ -171,8 +183,8 @@ internal class RapidIntegrationTest {
         }
 
         await("wait until the rapid stops")
-                .atMost(20, SECONDS)
-                .until { !rapid.isRunning() }
+            .atMost(20, SECONDS)
+            .until { !rapid.isRunning() }
 
         val actualOffset = await().atMost(Duration.ofSeconds(5)).until({
             val offsets = mainTopic.adminClient
@@ -186,7 +198,7 @@ internal class RapidIntegrationTest {
         val metadata = actualOffset?.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
         assertEquals(expectedOffset, actualOffset.offset())
         assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
-        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asString()) }
     }
 
     @Test
@@ -245,8 +257,8 @@ internal class RapidIntegrationTest {
         }
 
         await("wait until the rapid stops")
-                .atMost(20, SECONDS)
-                .until { !rapid.isRunning() }
+            .atMost(20, SECONDS)
+            .until { !rapid.isRunning() }
 
         val actualOffset = await().atMost(Duration.ofSeconds(5)).until({
             val offsets = mainTopic.adminClient
@@ -260,7 +272,7 @@ internal class RapidIntegrationTest {
         val metadata = actualOffset?.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
         assertEquals(expectedOffset, actualOffset.offset())
         assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
-        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asString()) }
     }
 
     private fun TestContext.ensureRapidIsActive() {
@@ -268,11 +280,11 @@ internal class RapidIntegrationTest {
         River(rapid).onSuccess { packet: JsonMessage, _: MessageContext, _, _ -> readMessages.add(packet) }
 
         await("wait until the rapid has read the test message")
-                .atMost(5, SECONDS)
-                .until {
-                    rapid.publish("{\"foo\": \"bar\"}")
-                    readMessages.isNotEmpty()
-                }
+            .atMost(5, SECONDS)
+            .until {
+                rapid.publish("{\"foo\": \"bar\"}")
+                readMessages.isNotEmpty()
+            }
     }
 
     @Test
@@ -295,7 +307,7 @@ internal class RapidIntegrationTest {
         val metadata = actualOffset?.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
         assertTrue(actualOffset.offset() >= recordMetadata.offset()) { "expected $actualOffset to be equal or greater than $recordMetadata" }
         assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
-        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asString()) }
     }
 
     @Test
@@ -318,7 +330,7 @@ internal class RapidIntegrationTest {
         val metadata = actualOffset?.metadata() ?: fail { "expected metadata to be present in OffsetAndMetadata" }
         assertTrue(actualOffset.offset() >= recordMetadata.offset())
         assertTrue(objectMapper.readTree(metadata).has("groupInstanceId"))
-        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asText()) }
+        assertDoesNotThrow { LocalDateTime.parse(objectMapper.readTree(metadata).path("time").asString()) }
     }
 
     @Test
@@ -395,7 +407,6 @@ internal class RapidIntegrationTest {
             }
         return recordMetadata
     }
-
 }
 
 private class LocalKafkaConfig(private val connectionProperties: Properties) : Config {

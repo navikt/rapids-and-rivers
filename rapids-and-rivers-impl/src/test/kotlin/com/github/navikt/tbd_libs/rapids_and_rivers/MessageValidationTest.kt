@@ -1,10 +1,12 @@
 package com.github.navikt.tbd_libs.rapids_and_rivers
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
 import org.intellij.lang.annotations.Language
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
 class MessageValidationTest {
     @Test
@@ -52,7 +54,6 @@ class MessageValidationTest {
             assertFalse(problems.hasErrors())
         }
     }
-
 
     @Test
     fun `key must exist`() {
@@ -125,8 +126,6 @@ class MessageValidationTest {
             assertFalse(problems.hasErrors())
         }
     }
-
-
 
     @Test
     fun `key can be`() {

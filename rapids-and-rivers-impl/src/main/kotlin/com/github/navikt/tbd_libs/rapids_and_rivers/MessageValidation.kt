@@ -1,19 +1,19 @@
 package com.github.navikt.tbd_libs.rapids_and_rivers
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationResult.Invalid
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationResult.Valid
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationSpec.Companion.allAreOK
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValueValidation.Companion.optional
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
+import tools.jackson.databind.JsonNode
 
 val exist = ValidationResult.create("Feltet finnes ikke") { node ->
     !node.isMissingOrNull()
 }
-fun be(expectedValue: String) = ValidationResult.create("Feltet har ikke forventet verdi $expectedValue") { node ->
-    node.asText() == expectedValue
-}
 
+fun be(expectedValue: String) = ValidationResult.create("Feltet har ikke forventet verdi $expectedValue") { node ->
+    node.asString() == expectedValue
+}
 
 fun validate(validationSpec: MessageValidation.() -> Unit): MessageValidation {
     val spec = MessageValidation()
@@ -84,10 +84,13 @@ class ValidationSpec(private val validation: ValueValidation, private val errorS
             return all { spec -> spec.validate(key, valueToBeEvaluated, problems) is Valid }
         }
     }
+
     fun validate(key: String, node: JsonNode, problems: MessageProblems): ValidationResult {
         val result = validation.validate(node)
         when (result) {
-            is Valid -> { /* 😌 */ }
+            is Valid -> { /* 😌 */
+            }
+
             is Invalid -> errorStrategy(problems, "$key: ${result.message}")
         }
         return result

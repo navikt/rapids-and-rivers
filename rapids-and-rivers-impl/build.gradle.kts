@@ -6,8 +6,7 @@ dependencies {
     api(project(":kafka"))
     api(project(":rapids-and-rivers-api"))
 
-    api("com.fasterxml.jackson.module:jackson-module-kotlin")
-    api("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    api("tools.jackson.module:jackson-module-kotlin")
 
     implementation("io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:$otelVersion")
 
