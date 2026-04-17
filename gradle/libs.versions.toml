@@ -1,0 +1,37 @@
+[versions]
+awaitility = "4.3.0"
+jackson = "3.1.2"
+jackson-annotations = "2.21"
+junit-jupiter = "6.0.2"
+kafka = "4.2.0"
+kotlin = "2.3.20"
+kotlinx-coroutines = "1.10.2"
+ktor = "3.4.2"
+logback = "1.5.32"
+logstash-logback-encoder = "9.0"
+micrometer = "1.16.2"
+opentelemetry = "2.9.0"
+slf4j = "2.0.17"
+testcontainers = "2.0.4"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+
+[libraries]
+awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson-annotations" }
+jackson-bom = { module = "tools.jackson:jackson-bom", version.ref = "jackson" }
+jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm", version.ref = "kotlinx-coroutines" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+ktor-server-metrics-micrometer = { module = "io.ktor:ktor-server-metrics-micrometer", version.ref = "ktor" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-logback-encoder" }
+micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+opentelemetry-instrumentation-annotations = { module = "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations", version.ref = "opentelemetry" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }

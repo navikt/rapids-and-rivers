@@ -1,7 +1,5 @@
-val kafkaVersion = "4.2.0"
-
 dependencies {
-    api("org.apache.kafka:kafka-clients:$kafkaVersion")
+    api(libs.kafka.clients)
 
     testImplementation(project(":kafka-test"))
 }

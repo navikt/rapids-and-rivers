@@ -1,43 +1,27 @@
-val slf4jVersion = "2.0.17"
-val ktorVersion = "3.4.0"
-val micrometerRegistryPrometheusVersion = "1.16.2"
-val junitJupiterVersion = "6.0.2"
-val logbackClassicVersion = "1.5.25"
-val logbackEncoderVersion = "9.0"
-val awaitilityVersion = "4.3.0"
-val testcontainersVersion = "2.0.3"
-val jacksonVersion = "3.1.2"
-val jacksonAnnotationsVersion = "2.21"
-
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "2.3.0"
-    id("java")
-    id("maven-publish")
+    alias(libs.plugins.kotlin.jvm)
+
+    `maven-publish`
 }
 
 dependencies {
-    api("org.slf4j:slf4j-api:$slf4jVersion")
+    api(libs.slf4j.api)
 
     api(project("rapids-and-rivers-impl"))
 
-    api("io.ktor:ktor-server-cio:$ktorVersion")
+    api(libs.ktor.server.cio)
+    api(libs.ktor.server.metrics.micrometer)
+    api(libs.micrometer.registry.prometheus)
 
-    api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
-    api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
-
-    api("ch.qos.logback:logback-classic:$logbackClassicVersion")
-    api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
-
-    //testImplementation("org.junit.jupiter:junit-jupiter")
-    //testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    api(libs.logback.classic)
+    api(libs.logstash.logback.encoder)
 
     testImplementation(project("rapids-and-rivers-test"))
-
-    testImplementation("org.testcontainers:testcontainers-kafka:$testcontainersVersion")
-    testImplementation("org.awaitility:awaitility:$awaitilityVersion")
+    testImplementation(libs.testcontainers.kafka)
+    testImplementation(libs.awaitility)
 }
 
 java {
@@ -73,9 +57,9 @@ allprojects {
 
     repositories {
         mavenCentral()
-        /* ihht. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
-            så plasseres github-maven-repo (med autentisering) før nav-mirror slik at github actions kan anvende førstnevnte.
-            Det er fordi nav-mirroret kjører i Google Cloud og da ville man ellers fått unødvendige utgifter til datatrafikk mellom Google Cloud og GitHub
+        /*  ihht. https://github.com/navikt/utvikling/blob/main/docs/teknisk/Konsumere%20biblioteker%20fra%20Github%20Package%20Registry.md
+            så plasseres GitHub-Maven-repo (med autentisering) før Nav-mirror slik at GitHub actions kan anvende førstnevnte.
+            Det er fordi Nav-mirror kjører i Google Cloud og da ville man ellers fått unødvendige utgifter til datatrafikk mellom Google Cloud og GitHub.
          */
         maven {
             url = uri("https://maven.pkg.github.com/navikt/maven-release")
@@ -86,6 +70,11 @@ allprojects {
         }
         maven("https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
     }
+
+    val jacksonVersion = gradle.extra["jacksonVersion"] as String
+    val jacksonAnnotationsVersion = gradle.extra["jacksonAnnotationsVersion"] as String
+    val junitJupiterVersion = gradle.extra["junitJupiterVersion"] as String
+    val testcontainersVersion = gradle.extra["testcontainersVersion"] as String
 
     ext.set("testcontainersVersion", testcontainersVersion)
     val api by configurations
