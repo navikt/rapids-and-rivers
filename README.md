@@ -2,8 +2,7 @@
 
 # Rapids and rivers
 
-Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids and rivers
-til [@fredgeorge](https://github.com/fredgeorge/). For mer info kan man se denne videoen https://vimeo.com/79866979
+Bibliotek for enkelt å kunne lage mikrotjenester som bruker konseptet rapids and rivers til [@fredgeorge](https://github.com/fredgeorge/). For mer info kan man se denne videoen https://vimeo.com/79866979
 
 ## Konsepter
 
@@ -13,17 +12,13 @@ til [@fredgeorge](https://github.com/fredgeorge/). For mer info kan man se denne
 - `isready` er true så snart `onStartup`-lytterne er ferdige. KafkaRapid vil ikke begynne å polle meldinger før etter
   onStartup-lytterne er ferdige, og vil dermed ikke bli assignet partisjoner av brokerne.
 - Rivers vil kun få packets i `onPacket` når `MessageProblems` er fri for feilmeldinger (errors og severe)
-- Rivers kan bruke `require*()`-funksjoner for å akkumulere errors i et `MessageProblems`-objekt som sendes til`onError`
+- Rivers kan bruke `require*()`-funksjoner for å akkumulere errors i et `MessageProblems`-objekt som sendes til `onError`
 - Rivers kan bruke `demand*()`-funksjoner for å stoppe parsing ved feil. Exception sendes til `onSevere`
 
-Man kan bruke en kombinasjon av `demand*()` og `require*()`. For eksempel om alle meldingene har et `@event_name`, så
-kan man bruke
-`demandValue("@event_name", "my_event")` for å avbryte parsing når event-navnet ikke er som forventet. Dersom man har
-alle andre former
-for validering med `require*()`, så kan man f.eks. logge innholdet i pakken i `onError` i lag med en feilmelding som
-sier noe sånn som `klarte ikke å parse my_event`.
-Dersom man ikke benytter seg av `demand*()` så er det umulig å vite i `onError()` hvorvidt `@event_name` var forventet
-verdi eller ikke, og logging vil dermed ende opp med å spamme
+Man kan bruke en kombinasjon av `demand*()` og `require*()`. For eksempel om alle meldingene har et `@event_name`, så kan man bruke
+`demandValue("@event_name", "my_event")` for å avbryte parsing når event-navnet ikke er som forventet. Dersom man har alle andre former
+for validering med `require*()`, så kan man f.eks. logge innholdet i pakken i `onError` i lag med en feilmelding som sier noe sånn som `klarte ikke å parse my_event`.
+Dersom man ikke benytter seg av `demand*()` så er det umulig å vite i `onError()` hvorvidt `@event_name` var forventet verdi eller ikke, og logging vil dermed ende opp med å spamme
 med alle meldinger på rapiden som riveren ikke forstår.
 
 ### Kjøreregler
@@ -31,8 +26,7 @@ med alle meldinger på rapiden som riveren ikke forstår.
 #### Appen min har database
 
 - Kjør migreringer i `onStartup`
-- Bruk rollout strategy `Recreate`. Ellers vil du ha én pod som leser meldinger og skriver til db, mens den andre holder
-  på med migreringer
+- Bruk rollout strategy `Recreate`. Ellers vil du ha én pod som leser meldinger og skriver til db, mens den andre holder på med migreringer
 
 #### Appen min har rest-api (og database)
 
@@ -84,12 +78,7 @@ internal class MyCoolApp(
            er "my_event", og at det er minst én av de ulike validate() som har feilet */
     }
 
-    override fun onPacket(
-        packet: JsonMessage,
-        context: MessageContext,
-        metadata: MessageMetadata,
-        meterRegistry: MeterRegistry
-    ) {
+    override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
         println(packet["a_required_key"].asString())
         // nested objects can be chained using "."
         println(packet["nested.key"].asString())
