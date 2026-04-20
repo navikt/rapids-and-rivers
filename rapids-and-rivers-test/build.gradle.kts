@@ -1,5 +1,5 @@
 dependencies {
     api(project(":rapids-and-rivers-api"))
 
-    implementation(libs.jackson.module.kotlin)
+    implementation("tools.jackson.module:jackson-module-kotlin")
 }

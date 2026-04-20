@@ -1,16 +1,20 @@
+val awaitilityVersion = "4.3.0"
+val otelVersion = "2.9.0"
+val kotlinxCoroutinesVersion = "1.9.0"
+
 dependencies {
     api(project(":kafka"))
     api(project(":rapids-and-rivers-api"))
 
-    api(libs.jackson.module.kotlin)
+    api("tools.jackson.module:jackson-module-kotlin")
 
-    implementation(libs.opentelemetry.instrumentation.annotations)
+    implementation("io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations:$otelVersion")
 
     testImplementation(project(":rapids-and-rivers-test"))
     testImplementation(project(":kafka-test"))
-    testImplementation(libs.awaitility)
-    testImplementation(libs.kotlinx.coroutines.core)
+    testImplementation("org.awaitility:awaitility:$awaitilityVersion")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinxCoroutinesVersion")
 
-    testImplementation(libs.logback.classic)
-    testImplementation(libs.logstash.logback.encoder)
+    testImplementation("ch.qos.logback:logback-classic:1.5.18")
+    testImplementation("net.logstash.logback:logstash-logback-encoder:8.0")
 }
