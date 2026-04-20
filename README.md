@@ -79,9 +79,9 @@ internal class MyCoolApp(
     }
 
     override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
-        println(packet["a_required_key"].asText())
+        println(packet["a_required_key"].asString())
         // nested objects can be chained using "."
-        println(packet["nested.key"].asText())
+        println(packet["nested.key"].asString())
     }
 }
 ```

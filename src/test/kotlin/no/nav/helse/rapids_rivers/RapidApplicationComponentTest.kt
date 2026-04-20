@@ -1,26 +1,18 @@
 package no.nav.helse.rapids_rivers
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.navikt.tbd_libs.kafka.ConsumerProducerFactory
 import com.github.navikt.tbd_libs.rapids_and_rivers.KafkaRapid
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
-import io.ktor.http.*
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.ContentType
+import io.ktor.server.cio.CIO
+import io.ktor.server.cio.CIOApplicationEngine
+import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.*
-import org.apache.kafka.clients.consumer.Consumer
-import org.awaitility.Awaitility.await
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import org.testcontainers.kafka.ConfluentKafkaContainer
-import org.testcontainers.utility.DockerImageName
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -29,17 +21,39 @@ import java.net.ServerSocket
 import java.net.URI
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.stream.Collectors
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.apache.kafka.clients.consumer.Consumer
+import org.awaitility.Awaitility.await
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.kafka.ConfluentKafkaContainer
+import org.testcontainers.utility.DockerImageName
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class RapidApplicationComponentTest {
 
-    private val objectMapper = jacksonObjectMapper()
-        .registerModule(JavaTimeModule())
-        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-
+    private val objectMapper = jacksonMapperBuilder()
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .build()
 
     private val testTopic = "a-test-topic"
     private val kafkaContainer = ConfluentKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.7.1"))
@@ -188,12 +202,12 @@ internal class RapidApplicationComponentTest {
             rapid.publish("""{"@event_name":"ping","@id":"$pingId","ping_time":"$pingTime"}""")
 
             val pong = requireNotNull(waitForEvent("pong")) { "did not receive pong before timeout" }
-            assertNotEquals(pingId, pong["@id"].asText())
-            assertEquals(pingTime.toString(), pong["ping_time"].asText())
-            assertDoesNotThrow { LocalDateTime.parse(pong["pong_time"].asText()) }
-            assertEquals("app-name", pong["app_name"].asText())
-            assertEquals(pingId, pong.path("@forårsaket_av").path("id").asText())
-            assertEquals("ping", pong.path("@forårsaket_av").path("event_name").asText())
+            assertNotEquals(pingId, pong["@id"].asString())
+            assertEquals(pingTime.toString(), pong["ping_time"].asString())
+            assertDoesNotThrow { LocalDateTime.parse(pong["pong_time"].asString()) }
+            assertEquals("app-name", pong["app_name"].asString())
+            assertEquals(pingId, pong.path("@forårsaket_av").path("id").asString())
+            assertEquals("ping", pong.path("@forårsaket_av").path("event_name").asString())
             assertTrue(pong.hasNonNull("instance_id"))
         }
     }
@@ -203,7 +217,7 @@ internal class RapidApplicationComponentTest {
             .atMost(60, SECONDS)
             .until({
                 messages.map { objectMapper.readTree(it) }
-                    .firstOrNull { it.path("@event_name").asText() == event }
+                    .firstOrNull { it.path("@event_name").asString() == event }
             }) { it != null }
     }
 

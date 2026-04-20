@@ -17,8 +17,13 @@ River(rapidsConnection).apply {
 }.register(GreetingListener())
 
 class GreetingListener : River.PacketListener {
-    override fun onPacket(packet: JsonMessage, context: MessageContext, metadata: MessageMetadata, meterRegistry: MeterRegistry) {
-        println("Hello, ${packet["name"].asText()}")
+    override fun onPacket(
+        packet: JsonMessage,
+        context: MessageContext,
+        metadata: MessageMetadata,
+        meterRegistry: MeterRegistry
+    ) {
+        println("Hello, ${packet["name"].asString()}")
     }
 
     override fun onPreconditionError(

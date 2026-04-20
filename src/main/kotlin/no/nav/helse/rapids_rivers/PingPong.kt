@@ -1,6 +1,5 @@
 package no.nav.helse.rapids_rivers
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers.River
 import com.github.navikt.tbd_libs.rapids_and_rivers.asLocalDateTime
@@ -8,9 +7,10 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalDateTime
+import org.slf4j.LoggerFactory
+import tools.jackson.databind.JsonNode
 
 class PingPong(rapidsConnection: RapidsConnection, private val appName: String, private val instanceId: String) :
     River.PacketValidationSuccessListener {
