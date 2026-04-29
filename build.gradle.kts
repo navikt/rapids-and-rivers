@@ -4,6 +4,7 @@ val micrometerRegistryPrometheusVersion = "1.16.2"
 val junitJupiterVersion = "6.0.2"
 val logbackClassicVersion = "1.5.25"
 val logbackEncoderVersion = "9.0"
+val otelLogbackVersion = "2.9.0-alpha"
 val awaitilityVersion = "4.3.0"
 val testcontainersVersion = "2.0.3"
 val jacksonVersion = "2.18.3"
@@ -29,6 +30,7 @@ dependencies {
 
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")
+    api("io.opentelemetry.instrumentation:opentelemetry-logback-mdc-1.0:$otelLogbackVersion")
 
     //testImplementation("org.junit.jupiter:junit-jupiter")
     //testRuntimeOnly("org.junit.platform:junit-platform-launcher")
