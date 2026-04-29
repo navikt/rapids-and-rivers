@@ -4,6 +4,10 @@
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
     </appender>
 
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+        <appender-ref ref="STDOUT_JSON" />
+    </appender>
+
     <appender name="team-logs" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
         <destination>team-logs.nais-system:5170</destination>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -19,6 +23,6 @@
     </logger>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT_JSON"/>
+        <appender-ref ref="OTEL"/>
     </root>
 </configuration>
