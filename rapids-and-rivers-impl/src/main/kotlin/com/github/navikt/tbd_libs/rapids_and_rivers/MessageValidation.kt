@@ -1,19 +1,18 @@
 package com.github.navikt.tbd_libs.rapids_and_rivers
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationResult.Invalid
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationResult.Valid
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValidationSpec.Companion.allAreOK
 import com.github.navikt.tbd_libs.rapids_and_rivers.ValueValidation.Companion.optional
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageProblems
+import tools.jackson.databind.JsonNode
 
 val exist = ValidationResult.create("Feltet finnes ikke") { node ->
     !node.isMissingOrNull()
 }
 fun be(expectedValue: String) = ValidationResult.create("Feltet har ikke forventet verdi $expectedValue") { node ->
-    node.asText() == expectedValue
+    node.asString() == expectedValue
 }
-
 
 fun validate(validationSpec: MessageValidation.() -> Unit): MessageValidation {
     val spec = MessageValidation()

@@ -7,7 +7,8 @@ val logbackEncoderVersion = "9.0"
 val otelLogbackVersion = "2.9.0-alpha"
 val awaitilityVersion = "4.3.0"
 val testcontainersVersion = "2.0.3"
-val jacksonVersion = "2.18.3"
+val jacksonVersion = "3.1.2"
+val jacksonAnnotationsVersion = "2.21"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -94,13 +95,13 @@ allprojects {
     val testRuntimeOnly by configurations
     dependencies {
         constraints {
-            api("com.fasterxml.jackson:jackson-bom:$jacksonVersion") {
+            api("tools.jackson:jackson-bom:$jacksonVersion") {
                 because("Alle moduler skal bruke samme versjon av jackson")
             }
-            api("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion") {
+            api("com.fasterxml.jackson.core:jackson-annotations:$jacksonAnnotationsVersion") {
                 because("Alle moduler skal bruke samme versjon av jackson")
             }
-            api("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion") {
+            api("tools.jackson.module:jackson-module-kotlin:$jacksonVersion") {
                 because("Alle moduler skal bruke samme versjon av jackson")
             }
         }

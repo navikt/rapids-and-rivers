@@ -10,5 +10,5 @@ dependencies {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
 
-    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    testImplementation("tools.jackson.module:jackson-module-kotlin")
 }
