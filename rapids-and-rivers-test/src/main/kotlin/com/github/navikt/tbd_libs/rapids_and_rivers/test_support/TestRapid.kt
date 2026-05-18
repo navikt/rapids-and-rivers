@@ -35,6 +35,10 @@ class TestRapid(private val meterRegistry: MeterRegistry = SimpleMeterRegistry()
         notifyMessage(message, KeyMessageContext(this, key), MessageMetadata("test.message", -1, -1, key, emptyMap()), meterRegistry)
     }
 
+    fun sendTestMessage(message: String, key: String, topic: String) {
+        notifyMessage(message, KeyMessageContext(this, key), MessageMetadata(topic, -1, -1, key, emptyMap()), meterRegistry)
+    }
+
     override fun publish(message: String) {
         messages.add(null to message)
     }

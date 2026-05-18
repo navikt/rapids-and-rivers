@@ -44,4 +44,20 @@ internal class TestRapidTest {
         assertEquals(1, testRapid.inspektør.size)
         assertEquals(key, testRapid.inspektør.key(0))
     }
+
+    @Test
+    fun `kan publisere test melding med key og topic`() {
+        val originalMessage = "a test message!"
+        val key = "a key"
+        val topic = "custom.topic"
+
+        testRapid.register { _: String, context: MessageContext, _, _ ->
+            context.publish(originalMessage)
+        }
+
+        testRapid.sendTestMessage(originalMessage, key, topic)
+
+        assertEquals(1, testRapid.inspektør.size)
+        assertEquals(key, testRapid.inspektør.key(0))
+    }
 }
