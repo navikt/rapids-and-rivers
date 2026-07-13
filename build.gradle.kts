@@ -9,6 +9,7 @@ val awaitilityVersion = "4.3.0"
 val testcontainersVersion = "2.0.3"
 val jacksonVersion = "3.1.2"
 val jacksonAnnotationsVersion = "2.21"
+val prometheusMetricsCoreVersion = "1.3.1"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
@@ -28,6 +29,7 @@ dependencies {
 
     api("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     api("io.micrometer:micrometer-registry-prometheus:$micrometerRegistryPrometheusVersion")
+    implementation("io.prometheus:prometheus-metrics-core:$prometheusMetricsCoreVersion")
 
     api("ch.qos.logback:logback-classic:$logbackClassicVersion")
     api("net.logstash.logback:logstash-logback-encoder:$logbackEncoderVersion")

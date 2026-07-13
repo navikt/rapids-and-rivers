@@ -21,9 +21,10 @@ import io.micrometer.core.instrument.Tags
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.model.registry.PrometheusRegistry
-import org.slf4j.LoggerFactory
 import java.net.InetAddress
 import java.util.*
+import io.prometheus.metrics.tracer.initializer.SpanContextSupplier
+import org.slf4j.LoggerFactory
 
 class RapidApplication internal constructor(
     private val ktor: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>,
@@ -147,7 +148,8 @@ class RapidApplication internal constructor(
             meterRegistry: PrometheusMeterRegistry = PrometheusMeterRegistry(
                 PrometheusConfig.DEFAULT,
                 PrometheusRegistry.defaultRegistry,
-                Clock.SYSTEM
+                Clock.SYSTEM,
+                SpanContextSupplier.getSpanContext(),
             ),
             builder: Builder.() -> Unit = {},
             configure: (EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>, KafkaRapid) -> Unit = { _, _ -> }
