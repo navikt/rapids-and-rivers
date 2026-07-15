@@ -10,12 +10,14 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.cfg.DateTimeFeature
+import tools.jackson.databind.introspect.DefaultAccessorNamingStrategy
 import tools.jackson.module.kotlin.jacksonMapperBuilder
 
 class TestRapid(private val meterRegistry: MeterRegistry = SimpleMeterRegistry()) :
     RapidsConnection() {
     private companion object {
         private val objectMapper = jacksonMapperBuilder()
+            .accessorNaming(DefaultAccessorNamingStrategy.Provider().withFirstCharAcceptance(true, true))
             .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
             .build()
     }
