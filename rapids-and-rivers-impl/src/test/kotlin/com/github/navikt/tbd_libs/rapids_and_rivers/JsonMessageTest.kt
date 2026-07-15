@@ -925,6 +925,7 @@ internal class JsonMessageTest {
         }
         assertThrows<DateTimeParseException> { StringNode.valueOf(Instant.now().toString()).asLocalDateTime() }
     }
+
     @Test
     fun asLocalDateTimeLenient() {
         assertThrows<DateTimeParseException> { MissingNode.getInstance().asLocalDateTimeLenient() }
@@ -1081,8 +1082,6 @@ internal class JsonMessageTest {
         }
     }
 
-
-
     @Test
     fun `allParticipatingServices returns empty list when no participating services field`() {
         @Language("JSON")
@@ -1218,4 +1217,24 @@ internal class JsonMessageTest {
         val message = message(json)
         assertEquals(emptyList<String>(), message.løsninger)
     }
+
+    @Test
+    fun `serializing fields that starts with non ascii works `() {
+        val inntekt = Inntekt(YearMonth.of(2024, 1), 50000)
+        val message = JsonMessage.newMessage(
+            mapOf(
+                "@løsning" to mapOf(
+                    "inntekt" to inntekt,
+                )
+
+            )
+        ).also { it.interestedIn("@løsning") }
+
+        assertEquals(listOf("inntekt"), message.løsninger)
+        val løsning = message["@løsning"]["inntekt"]
+        assertEquals(inntekt.årMåned, løsning["årMåned"].asYearMonth())
+        assertEquals(inntekt.beløp, løsning["beløp"].numberValue())
+    }
+
+    private data class Inntekt(val årMåned: YearMonth, val beløp: Int)
 }
