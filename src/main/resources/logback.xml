@@ -10,8 +10,11 @@
 
     <appender name="team-logs" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
         <destination>team-logs.nais-system:5170</destination>
+        <keepAliveDuration>30 seconds</keepAliveDuration>
+        <writeTimeout>1 minute</writeTimeout>
+        <reconnectionDelay>1 second</reconnectionDelay>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"google_cloud_project":"${GOOGLE_CLOUD_PROJECT}","nais_namespace_name":"${NAIS_NAMESPACE}","nais_pod_name":"${HOSTNAME}","nais_container_name":"${NAIS_APP_NAME}"}</customFields>
+            <customFields>{"google_cloud_project":"${GOOGLE_CLOUD_PROJECT}","nais_namespace_name":"${NAIS_NAMESPACE}","nais_pod_name":"${NAIS_POD_NAME}","nais_container_name":"${NAIS_APP_NAME}"}</customFields>
             <includeContext>false</includeContext>
         </encoder>
     </appender>
