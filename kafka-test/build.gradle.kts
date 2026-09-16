@@ -1,5 +1,5 @@
 val testcontainersVersion: String by project
-val kafkaVersion = "4.2.0"
+val kafkaVersion = "4.3.1"
 
 dependencies {
     api("org.testcontainers:testcontainers-kafka:$testcontainersVersion")
