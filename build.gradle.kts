@@ -1,21 +1,21 @@
-val slf4jVersion = "2.0.17"
-val ktorVersion = "3.4.0"
-val micrometerRegistryPrometheusVersion = "1.16.2"
-val junitJupiterVersion = "6.0.2"
-val logbackClassicVersion = "1.5.25"
+val slf4jVersion = "2.0.19"
+val ktorVersion = "3.5.2"
+val micrometerRegistryPrometheusVersion = "1.17.1"
+val junitJupiterVersion = "6.1.3"
+val logbackClassicVersion = "1.6.3"
 val logbackEncoderVersion = "9.0"
-val otelLogbackVersion = "2.9.0-alpha"
+val otelLogbackVersion = "2.31.1-alpha"
 val awaitilityVersion = "4.3.0"
-val testcontainersVersion = "2.0.3"
-val jacksonVersion = "3.1.2"
-val jacksonAnnotationsVersion = "2.21"
-val prometheusMetricsCoreVersion = "1.3.1"
+val testcontainersVersion = "2.0.5"
+val jacksonVersion = "3.2.2"
+val jacksonAnnotationsVersion = "2.22"
+val prometheusMetricsCoreVersion = "1.8.0"
 
 group = "com.github.navikt"
 version = properties["version"] ?: "local-build"
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.4.20"
     id("java")
     id("maven-publish")
 }
