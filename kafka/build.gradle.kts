@@ -1,4 +1,4 @@
-val kafkaVersion = "4.3.1"
+val kafkaVersion = "4.4.0"
 
 dependencies {
     api("org.apache.kafka:kafka-clients:$kafkaVersion")

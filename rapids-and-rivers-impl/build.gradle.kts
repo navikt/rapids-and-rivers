@@ -1,5 +1,5 @@
 val awaitilityVersion = "4.3.0"
-val otelVersion = "2.31.1"
+val otelVersion = "2.33.1"
 val kotlinxCoroutinesVersion = "1.11.0"
 
 dependencies {
@@ -15,6 +15,6 @@ dependencies {
     testImplementation("org.awaitility:awaitility:$awaitilityVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:$kotlinxCoroutinesVersion")
 
-    testImplementation("ch.qos.logback:logback-classic:1.6.3")
+    testImplementation("ch.qos.logback:logback-classic:1.6.6")
     testImplementation("net.logstash.logback:logstash-logback-encoder:9.0")
 }
